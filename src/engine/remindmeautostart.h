@@ -12,7 +12,6 @@ class RemindmeAutostart
 public:
     // The directory is overridable so tests can isolate the entry; the default is the user autostart dir.
     explicit RemindmeAutostart(QString autostartDir = {});
-    ~RemindmeAutostart();
 
     void setActive(bool active);
 

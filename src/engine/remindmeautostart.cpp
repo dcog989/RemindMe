@@ -36,8 +36,6 @@ RemindmeAutostart::RemindmeAutostart(QString autostartDir)
     m_entryPath = m_autostartDir + QLatin1Char('/') + s_entryName;
 }
 
-RemindmeAutostart::~RemindmeAutostart() = default;
-
 void RemindmeAutostart::setActive(bool active)
 {
     const QString exec = execArgument(QCoreApplication::applicationFilePath());

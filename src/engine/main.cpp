@@ -4,8 +4,6 @@
 
 #include <KLocalizedString>
 
-#include <memory>
-
 #include "remindmeadaptor.h"
 #include "remindmealarmpresenter.h"
 #include "remindmeautostart.h"
@@ -59,10 +57,10 @@ int main(int argc, char **argv)
     // relaunched next login, and disable it once none are left so an idle helper is not started
     // at every login. The initial call reconciles a leftover enabled entry after a hard shutdown
     // that left no timer behind.
-    auto autostart = std::make_unique<RemindmeAutostart>();
-    autostart->setActive(!engine.isEmpty() || engine.hasPendingAlarms());
+    RemindmeAutostart autostart;
+    autostart.setActive(!engine.isEmpty() || engine.hasPendingAlarms());
     QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &engine, [&autostart](int timerCount) {
-        autostart->setActive(timerCount > 0);
+        autostart.setActive(timerCount > 0);
     });
 
     // Owns alarm/reminder presentation and tracks whether anything is still on screen.
