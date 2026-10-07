@@ -37,12 +37,12 @@ qint64 RemindmeEngine::nowMs() const
     return m_scheduler->nowMs();
 }
 
-Remindme::TimerInfo RemindmeEngine::create(qint32 durationSeconds, const QString &message)
+std::optional<Remindme::TimerInfo> RemindmeEngine::create(qint32 durationSeconds, const QString &message)
 {
-    Remindme::TimerInfo timer;
     if (durationSeconds <= 0 || durationSeconds > Remindme::maxDurationSeconds) {
-        return timer; // invalid duration, leave the timer uninitialized (id -1)
+        return std::nullopt;
     }
+    Remindme::TimerInfo timer;
     timer.id = m_nextId++;
     timer.deadline = nowMs() + qint64(durationSeconds) * 1000;
     timer.message = message;

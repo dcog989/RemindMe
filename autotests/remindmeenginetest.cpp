@@ -103,12 +103,12 @@ private Q_SLOTS:
     void testCreateAndList()
     {
         const qint64 before = fakeNow;
-        const TimerInfo first = engine->create(5 * 60, QStringLiteral("pasta"));
+        const TimerInfo first = engine->create(5 * 60, QStringLiteral("pasta")).value();
         QCOMPARE(first.id, 1);
         QCOMPARE(first.deadline, before + 5 * 60 * 1000);
         QCOMPARE(first.message, QStringLiteral("pasta"));
 
-        const TimerInfo second = engine->create(60, QString());
+        const TimerInfo second = engine->create(60, QString()).value();
         QCOMPARE(second.id, 2);
 
         const QList<TimerInfo> timers = engine->list();
@@ -127,13 +127,13 @@ private Q_SLOTS:
 
     void testCreateRejectsInvalidDurations()
     {
-        QCOMPARE(engine->create(0, QString()).id, -1);
-        QCOMPARE(engine->create(-5, QString()).id, -1);
-        QCOMPARE(engine->create(maxDurationSeconds + 1, QString()).id, -1);
+        QVERIFY(!engine->create(0, QString()).has_value());
+        QVERIFY(!engine->create(-5, QString()).has_value());
+        QVERIFY(!engine->create(maxDurationSeconds + 1, QString()).has_value());
         QVERIFY(engine->list().isEmpty());
 
         // Boundary values are still accepted
-        QVERIFY(engine->create(maxDurationSeconds, QString()).id > 0);
+        QVERIFY(engine->create(maxDurationSeconds, QString()).has_value());
         QCOMPARE(engine->list().size(), 1);
     }
 
@@ -173,7 +173,7 @@ private Q_SLOTS:
 
     void testPersistenceAcrossRestart()
     {
-        const qint64 deadline = engine->create(600, QStringLiteral("hello")).deadline;
+        const qint64 deadline = engine->create(600, QStringLiteral("hello")).value().deadline;
         engine.reset();
         resetEngine(); // reload from disk
 
@@ -184,7 +184,7 @@ private Q_SLOTS:
         QCOMPARE(restored.deadline, deadline);
 
         // The next id must continue after the restored timer
-        QCOMPARE(engine->create(60, QString()).id, 2);
+        QCOMPARE(engine->create(60, QString()).value().id, 2);
     }
 
     void testExpiredOnRestart()
@@ -227,13 +227,13 @@ private Q_SLOTS:
         QVERIFY(backup.open(QIODevice::ReadOnly));
         QCOMPARE(backup.readAll(), QByteArray("this is not json"));
 
-        QCOMPARE(engine->create(60, QString()).id, 1); // next mutation writes a fresh file
+        QCOMPARE(engine->create(60, QString()).value().id, 1); // next mutation writes a fresh file
         QVERIFY(QFile::exists(stateFilePath()));
     }
 
     void testSnoozeRearmsExpiredTimer()
     {
-        const TimerInfo timer = engine->create(1, QStringLiteral("tea"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("tea")).value();
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
 
@@ -252,7 +252,7 @@ private Q_SLOTS:
 
     void testFiredAlarmSurvivesRestart()
     {
-        const TimerInfo timer = engine->create(1, QStringLiteral("bread"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("bread")).value();
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
         QVERIFY(engine->hasPendingAlarms());
@@ -274,7 +274,7 @@ private Q_SLOTS:
 
     void testAcknowledgingFiredAlarmClearsIt()
     {
-        const TimerInfo timer = engine->create(1, QStringLiteral("bread"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("bread")).value();
         fakeNow += 2 * 1000;
         engine->checkExpiredTimers();
         QVERIFY(engine->hasPendingAlarms());
@@ -293,7 +293,7 @@ private Q_SLOTS:
         // A still-active timer snoozed via snooze() must keep the time that was left,
         // adding one minute to the existing deadline instead of collapsing to now + 1 minute
         const qint64 before = fakeNow;
-        const TimerInfo timer = engine->create(10 * 60, QStringLiteral("meeting"));
+        const TimerInfo timer = engine->create(10 * 60, QStringLiteral("meeting")).value();
         const qint64 originalDeadline = timer.deadline;
 
         QVERIFY(engine->snooze(timer));
