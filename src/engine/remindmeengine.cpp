@@ -110,11 +110,8 @@ Remindme::TimerInfo RemindmeEngine::Create(qint32 durationSeconds, const QString
 
 QList<Remindme::TimerInfo> RemindmeEngine::List()
 {
-    QList<Remindme::TimerInfo> timers = m_timers.values();
-    std::sort(timers.begin(), timers.end(), [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
-        return a.id < b.id;
-    });
-    return timers;
+    // m_timers is a QMap, so values() is already sorted by id (the order the D-Bus interface documents)
+    return m_timers.values();
 }
 
 bool RemindmeEngine::Cancel(qint32 id)
@@ -225,7 +222,7 @@ void RemindmeEngine::saveToDisk() const
     QDir().mkpath(QFileInfo(path).absolutePath());
 
     QJsonArray array;
-    const auto appendTimers = [&array](const QHash<int, Remindme::TimerInfo> &timers, bool fired) {
+    const auto appendTimers = [&array](const QMap<int, Remindme::TimerInfo> &timers, bool fired) {
         for (const Remindme::TimerInfo &timer : timers) {
             QJsonObject object{{QStringLiteral("id"), timer.id},
                                {QStringLiteral("deadline"), QJsonValue(static_cast<qint64>(timer.deadline))},
@@ -367,11 +364,10 @@ bool RemindmeEngine::hasPendingAlarms() const
 
 void RemindmeEngine::replayPendingAlarms()
 {
-    QList<Remindme::TimerInfo> pending = m_firedAlarms.values();
-    std::sort(pending.begin(), pending.end(), [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
-        return a.id < b.id;
-    });
-    for (const Remindme::TimerInfo &timer : std::as_const(pending)) {
+    // m_firedAlarms is a QMap, so values() is already id-ordered; replay matches the order the
+    // alarms originally fired in.
+    const QList<Remindme::TimerInfo> pending = m_firedAlarms.values();
+    for (const Remindme::TimerInfo &timer : pending) {
         Q_EMIT timerExpired(timer);
     }
 }

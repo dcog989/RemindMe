@@ -1,6 +1,6 @@
 #pragma once
 
-#include <QHash>
+#include <QMap>
 #include <QMetaType>
 #include <QObject>
 #include <QString>
@@ -95,10 +95,12 @@ private:
     // that already expired and was moved to m_firedAlarms (rearmExpiredTimer()).
     void snoozeTimer(Remindme::TimerInfo timer);
 
-    QHash<int, Remindme::TimerInfo> m_timers;
+    // Keyed by id so iteration is id-ordered: expiry alarms fire (and their dialogs stack) in
+    // the order the timers were created, deterministic across runs.
+    QMap<int, Remindme::TimerInfo> m_timers;
     // Expired but not yet acknowledged (Snooze/Dismiss). An id lives in exactly one of
     // m_timers/m_firedAlarms; this set is persisted so a session end does not lose the alarm.
-    QHash<int, Remindme::TimerInfo> m_firedAlarms;
+    QMap<int, Remindme::TimerInfo> m_firedAlarms;
     QTimer m_expiryTimer;
     // Suspend fallback where the timerfd is unavailable (non-Linux, injected test clock): a
     // monotonic QTimer pauses during suspend, so sweep the wall clock to bound wake lag.

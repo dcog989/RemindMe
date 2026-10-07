@@ -286,6 +286,23 @@ private Q_SLOTS:
         QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
         QCOMPARE(engine->List().size(), 0);
     }
+
+    void testExpiryOrderIsById()
+    {
+        // QMap iteration is id-ordered, so equal-deadline alarms fire (and their dialogs stack)
+        // deterministically in creation order rather than in QHash bucket order.
+        QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);
+        engine->Create(1, QStringLiteral("first"));
+        engine->Create(1, QStringLiteral("second"));
+        engine->Create(1, QStringLiteral("third"));
+        fakeNow += 2 * 1000; // every deadline has passed at once
+        engine->checkExpiredTimers();
+
+        QCOMPARE(spy.count(), 3);
+        QCOMPARE(spy.at(0).constFirst().value<TimerInfo>().id, 1);
+        QCOMPARE(spy.at(1).constFirst().value<TimerInfo>().id, 2);
+        QCOMPARE(spy.at(2).constFirst().value<TimerInfo>().id, 3);
+    }
 };
 
 QTEST_GUILESS_MAIN(RemindmeEngineTest)
