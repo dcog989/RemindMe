@@ -131,7 +131,7 @@ package:
 # Rebuild, reinstall and relaunch KRunner with the local runner
 reload preset="user":
     @kquitapp6 krunner || true
-    @pkill -f 'libexec/kf6/krunner-remindme' || true
+    @pkill -f 'libexec/kf6/[k]runner-remindme' || true
     cmake --build --preset {{preset}}
     cmake --install build/{{preset}}
     @krunner &
