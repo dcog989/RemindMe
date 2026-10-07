@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed \
-            base-devel cmake ninja ccache git \
+            base-devel cmake ninja git \
             qt6-base krunner kcoreaddons ki18n knotifications kconfig \
             extra-cmake-modules
       - uses: actions/checkout@v7
