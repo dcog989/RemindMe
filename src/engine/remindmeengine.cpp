@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <limits>
 #include <unistd.h>
+#include <utility>
 
 #ifdef Q_OS_LINUX
 #include <sys/timerfd.h>
