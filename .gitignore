@@ -3,6 +3,7 @@
 /_install/
 /build/
 /dist/
+/kns-build.log
 CMakeUserPresets.json
 compile_commands.json
 /po/*.pot
