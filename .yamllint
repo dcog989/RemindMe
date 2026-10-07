@@ -5,7 +5,6 @@ ignore: |
   .git/
   build/
   dist/
-  plasma-workspace/
   _install/
 
 rules:

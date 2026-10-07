@@ -123,7 +123,7 @@ package:
     #!/usr/bin/env bash
     set -euo pipefail
     if [ ! -f packaging/package.sh ]; then
-        echo "packaging/package.sh not present yet (arrives with the source extraction)" >&2
+        echo "packaging/package.sh is missing" >&2
         exit 1
     fi
     exec bash packaging/package.sh

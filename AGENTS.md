@@ -5,14 +5,13 @@
 - Name: remindme
 - Description: A third-party (user) KRunner plugin for KDE Plasma 6. Adds a timer function: type a trigger word followed by a duration (and optional message) to start a countdown; when time is up, a dedicated alarm window pops up with Snooze (+1 min) and Dismiss. Active timers can be listed and cancelled from KRunner, and they survive KRunner restarts.
 - Goal: a **standalone, third-party user plugin** distributed through the [KDE Store](https://store.kde.org/) and installable via KRunner's **Get New Plugins** flow; not part of KDE Plasma.
-- Status: migration from the in-tree plasma-workspace plugin (`plasma-workspace/runners/remindme/`, kept locally as the read-only gitignored extraction source) is complete. One `krunner-remindme` process is the engine, the KRunner DBus2 runner and the alarm window.
+- Status: migration from the in-tree plasma-workspace plugin is complete; the extraction source has been removed. One `krunner-remindme` process is the engine, the KRunner DBus2 runner and the alarm window.
 - Tech: C++20, Qt 6.9+, KDE Frameworks 6, CMake 3.29+, Extra CMake Modules (ECM)
 - License: **GPL-3.0-or-later**, declared in a single `LICENSE` file at the repo root.
 
 ### File Access
 
 - Repo root: `/home/bubba/Projects/remindme`
-- Legacy extraction source (read-only, gitignored): `plasma-workspace/runners/remindme/`
 - Scratch: `/tmp/*`
 - Read-only: `.env*`, `.git/`
 
@@ -57,7 +56,6 @@ remindme/
 
 ### Rules
 
-- The code is standalone: do **not** modify anything under `plasma-workspace/` — it is a read-only extraction source. Port code into `src/` instead.
 - Keep one executable: the timer engine, the `org.kde.krunner1` D-Bus runner adaptor and the alarm window live in the same process. Do not reintroduce a compiled KRunner plugin, a client/marshalling layer, a second target or a helper process.
 - Tooling is committed at the repo root (`CMakePresets.json`, `justfile`, `lefthook.yml`, `cog.toml`, `.clang-format`, `.clang-tidy`, `.yamllint`, `.editorconfig-checker.json`). Keep it working when targets or file types change; don't add a second task runner or hook manager.
 - Commit messages follow Conventional Commits (`cog verify`). Do not bypass hooks (`--no-verify`).

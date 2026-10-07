@@ -1,6 +1,6 @@
 # remindme
 
-A third-party (user) [KRunner](https://userbase.kde.org/Plasma/Krunner) plugin for KDE Plasma 6 that adds timers. Type a trigger word (`remindme` or `rme`) followed by a duration and an optional message to start a countdown. When the time is up a dedicated alarm window pops up with **Snooze (+1 min)** and **Dismiss**. Active timers can be listed and cancelled from KRunner, and they survive KRunner restarts.
+A timer plugin for KDE Plasma 6 KRunner. Type a trigger word (`remindme` or `rme`) followed by a duration and an optional message to start a countdown. When the time is up a dedicated alarm window pops up with **Snooze (+1 min)** and **Dismiss**. Active timers can be listed and cancelled from KRunner, and they survive restarts.
 
 `remindme` is distributed through the [KDE Store](https://store.kde.org/) and is installable from KRunner's **Get New Plugins** flow. The store payload ships sources, so the runner is built on first use (see [Install](#install)). It is **not** part of KDE Plasma and is **not** shipped by the Plasma release; the plugin lives entirely in this standalone repository.
 
