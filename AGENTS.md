@@ -35,8 +35,8 @@ remindme/
 │   ├── plasma-runner-remindme.desktop   # DBus2 runner metadata
 │   └── krunner-remindme.notifyrc
 ├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, remindmeintegrationtest
-├── po/                                  # translations (Messages.sh + catalogs)
-├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh
+├── po/                                  # translation extraction (Messages.sh)
+├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh
 │   └── kns/                             # first-run build launcher for the store package
 └── README.md
 ```
@@ -47,7 +47,7 @@ remindme/
 - Configure/build/test: `just ci` (runs `cmake --workflow --preset user`). Individual steps: `just configure`, `just build`, `just test`.
 - Presets live in `CMakePresets.json`: `user` (`~/.local`, Debug), `release`, `system`, `asan`. `CMAKE_EXPORT_COMPILE_COMMANDS` is on.
 - Install: `just install` (or `cmake --install build/<preset>`).
-- Format: `just format` (clang-format + shfmt); verify with `just format-check` — `KDEClangFormat` must not regenerate the committed `.clang-format`.
+- Format: `just format` (clang-format + shfmt); verify with `just format-check`. Don't let a build regenerate the committed `.clang-format`.
 - Lint: `just lint`; missing tools are skipped. `just doctor` reports gaps.
 - Static analysis: `just tidy` (clang-tidy, config in `.clang-tidy`).
 - Git hooks: `lefthook.yml`; install once with `lefthook install`. Pre-commit formats/lints, `commit-msg` runs `cog verify`, pre-push builds and tests.
@@ -57,7 +57,7 @@ remindme/
 ### Rules
 
 - Keep one executable: the timer engine, the `org.kde.krunner1` D-Bus runner adaptor and the alarm window live in the same process. Do not reintroduce a compiled KRunner plugin, a client/marshalling layer, a second target or a helper process.
-- Tooling is committed at the repo root (`CMakePresets.json`, `justfile`, `lefthook.yml`, `cog.toml`, `.clang-format`, `.clang-tidy`, `.yamllint`, `.editorconfig-checker.json`). Keep it working when targets or file types change; don't add a second task runner or hook manager.
+- Tooling is committed at the repo root (`CMakePresets.json`, `justfile`, `lefthook.yml`, `cog.toml`, `.clang-format`, `.clang-tidy`, `.yamllint`, `.editorconfig`, `.editorconfig-checker.json`, `_typos.toml`). Keep it working when targets or file types change; don't add a second task runner or hook manager.
 - Commit messages follow Conventional Commits (`cog verify`). Do not bypass hooks (`--no-verify`).
 - Follow KRunner/KF6 DBus-runner conventions: `#pragma once`, `QDBusAbstractAdaptor`, `QStringLiteral`, `i18n()`. The runner is a D-Bus service (`io.github.dcog989.remindme`), not a compiled plugin.
 - Use ECM install-dir variables (`KDE_INSTALL_*`) rather than hardcoded paths, so user- and system-prefix installs both work.

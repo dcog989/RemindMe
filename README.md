@@ -20,7 +20,7 @@ Trigger words: `remindme` or `rme`.
 | Create timer            | `rme 5`, `rme 3h msg`  |
 | List active timers      | `rme list`             |
 | Cancel by id            | `rme cancel 3`         |
-| Cancel by message       | `rme cancel meeting`   |
+| Cancel by message       | `rme cancel meeting` (case-sensitive) |
 | List timers to cancel   | `rme cancel`           |
 | Usage / help            | `rme`                  |
 
@@ -35,11 +35,6 @@ Trigger words: `remindme` or `rme`.
 | `rme 5:30`        | 5 minutes 30 seconds                |
 | `rme 4:15:30`     | 4 hours 15 minutes 30 seconds       |
 | `rme 8 pasta!`    | 8 minutes with the message `pasta!` |
-
-- Pressing Enter on a create match starts the timer. `rme list` shows each active timer with its `#id` and reminder time; activating a timer pops up its alarm, while its `✕` action cancels it. `rme cancel` with no target lists every timer so one can be picked and cancelled.
-- "Cancel by message" matches the message *exactly* (case-sensitive), so a short typo cannot cancel a large set of timers. Use `rme cancel <id>` or `rme cancel #<id>` for a specific timer.
-- On expiry the alarm window opens with the message plus Snooze and Dismiss, and plays a looping alarm sound until the window is closed.
-- Timers survive KRunner restarts and session logout: the runner process owns the engine, persists timers to disk, and uses wall-clock deadlines (epoch), so suspend and restart are handled naturally.
 
 ---
 
@@ -58,7 +53,7 @@ Trigger words: `remindme` or `rme`.
 
 ### Install from source
 
-Build dependencies: a C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6 (`CoreAddons`, `I18n`, `Notifications`, `Config`) and [Extra CMake Modules](https://invent.kde.org/frameworks/extra-cmake-modules). Building the tests additionally needs `KRunner` (for `AbstractRunnerTest`).
+Build dependencies: a C++20 compiler, CMake 3.29+, Qt 6.9+ (`Core`, `DBus`, `Widgets`), KDE Frameworks 6 (`CoreAddons`, `I18n`, `Notifications`, `Config`) and [Extra CMake Modules](https://invent.kde.org/frameworks/extra-cmake-modules). Building the tests additionally needs Qt `Test` and the KF6 `Runner` framework (for `AbstractRunnerTest`).
 
 The build is driven by [CMake presets](CMakePresets.json), with a thin [`justfile`](justfile) for convenience. Requires [`just`](https://github.com/casey/just):
 
@@ -77,7 +72,7 @@ cmake --build --preset user
 cmake --install build/user
 ```
 
-Presets: `user` (`~/.local`, Debug), `release`, `system` (`/usr`), `asan` (ASan + UBSan). Configure, build and test in one go with `just ci <preset>` or `cmake --workflow --preset user`.
+Presets: `user` (`~/.local`, Debug), `release`, `system` (`/usr`), `asan` (ASan + UBSan). Configure, build and test in one go with `just ci` (or `cmake --workflow --preset user`); only `user` has a workflow preset, while `user` and `asan` also have test presets.
 
 Because `remindme` is a D-Bus runner, a `~/.local` install needs no `QT_PLUGIN_PATH` and no sudo: KRunner scans `~/.local/share/krunner/dbusplugins`, D-Bus scans `~/.local/share/dbus-1/services`, and the service `Exec=` is an absolute path. Restart KRunner afterwards so it reloads the runner list:
 
