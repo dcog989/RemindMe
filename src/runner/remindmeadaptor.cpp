@@ -19,6 +19,10 @@ namespace
 // which spell these same trigger words but cannot share this list.
 const QStringList s_triggerWords{QStringLiteral("remindme"), QStringLiteral("rme")};
 
+// "cancel" command with its separating space, so recognizing the prefix and stripping it share one
+// spelling instead of the latter hardcoding the length.
+const QString s_cancelCommand{QStringLiteral("cancel ")};
+
 // Match-id tags: Run() dispatches on them and the builders prepend them. Sharing the constants
 // keeps parsing and construction from drifting apart.
 const QString s_createPrefix{QStringLiteral("create:")};
@@ -122,8 +126,8 @@ RemoteMatches RemindmeAdaptor::Match(const QString &query)
         addCancelMatches(matches, QString());
         return matches;
     }
-    if (term->startsWith(QLatin1String("cancel "), Qt::CaseInsensitive)) {
-        addCancelMatches(matches, term->mid(7).trimmed());
+    if (term->startsWith(s_cancelCommand, Qt::CaseInsensitive)) {
+        addCancelMatches(matches, term->mid(s_cancelCommand.size()).trimmed());
         return matches;
     }
 
