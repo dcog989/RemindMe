@@ -110,8 +110,8 @@ int main(int argc, char **argv)
                 engine.Snooze(timer.id);
             }
         });
-        // Dismissing a still-active timer cancels it; dismissing an expired alarm acknowledges
-        // and clears it from the engine's fired set (Cancel handles both).
+        // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; Cancel
+        // handles both. Closing the window without a button is a no-op.
         QObject::connect(dialog, &RemindmeAlarmDialog::dismissRequested, &engine, [&engine, timer]() {
             engine.Cancel(timer.id);
         });
