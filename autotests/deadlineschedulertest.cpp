@@ -1,0 +1,62 @@
+#include "deadlinescheduler.h"
+#include "qtimerdeadlinescheduler.h"
+
+#include <QScopedPointer>
+#include <QSignalSpy>
+#include <QTest>
+
+#include <optional>
+
+// The engine tests drive expiry through a manual scheduler; these tests cover the QTimer fallback
+// that production uses where timerfd is unavailable, notably that its wall-clock sweep notices a
+// clock jump and that disarming stops it from waking.
+class DeadlineSchedulerTest : public QObject
+{
+    Q_OBJECT
+
+private:
+    qint64 fakeNow = 0;
+
+private Q_SLOTS:
+    void testFactoryProvidesScheduler()
+    {
+        QScopedPointer<DeadlineScheduler> scheduler(createDeadlineScheduler());
+        QVERIFY(scheduler);
+    }
+
+    void testFiresWhenDeadlineReached()
+    {
+        fakeNow = qint64(1) << 40;
+        QTimerDeadlineScheduler scheduler([this]() {
+            return fakeNow;
+        });
+        QSignalSpy spy(&scheduler, &DeadlineScheduler::deadlineReached);
+
+        scheduler.setNextDeadline(fakeNow + 1000);
+        fakeNow += 2000; // the deadline is crossed, as after a resume
+        QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
+
+        // The deadline is spent: the scheduler must not wake again unless re-armed.
+        QTest::qWait(700);
+        QCOMPARE(spy.count(), 1);
+    }
+
+    void testDisarmStopsWaking()
+    {
+        fakeNow = qint64(1) << 40;
+        QTimerDeadlineScheduler scheduler([this]() {
+            return fakeNow;
+        });
+        QSignalSpy spy(&scheduler, &DeadlineScheduler::deadlineReached);
+
+        scheduler.setNextDeadline(fakeNow + 1000);
+        scheduler.setNextDeadline(std::nullopt);
+        fakeNow += 60 * 1000;
+        QTest::qWait(700); // longer than one sweep interval
+        QCOMPARE(spy.count(), 0);
+    }
+};
+
+QTEST_GUILESS_MAIN(DeadlineSchedulerTest)
+
+#include "deadlineschedulertest.moc"

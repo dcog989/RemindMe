@@ -25,6 +25,9 @@ remindme/
 │   ├── engine/                          # timer engine + alarm + entry point → krunner-remindme
 │   │   ├── main.cpp                     # D-Bus service, engine and adaptor wiring
 │   │   ├── remindmeengine.{h,cpp}       # timer engine (wall-clock deadlines, persistence)
+│   │   ├── deadlinescheduler.{h,cpp}    # deadline-wake abstraction + production factory
+│   │   ├── timerfddeadlinescheduler.{h,cpp} # timerfd (realtime) scheduler
+│   │   ├── qtimerdeadlinescheduler.{h,cpp}  # QTimer + wall-clock sweep fallback
 │   │   ├── remindmetime.{h,cpp}         # duration parser
 │   │   ├── remindmealarmdialog.{h,cpp}  # Snooze/Dismiss window
 │   │   └── remindmeautostart.{h,cpp}    # session autostart toggling
@@ -34,7 +37,7 @@ remindme/
 ├── data/                                # installed data files
 │   ├── plasma-runner-remindme.desktop   # DBus2 runner metadata
 │   └── krunner-remindme.notifyrc
-├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, remindmeintegrationtest
+├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
 ├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh
 │   └── kns/                             # first-run build launcher for the store package

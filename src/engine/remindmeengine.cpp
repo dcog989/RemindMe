@@ -1,6 +1,5 @@
 #include "remindmeengine.h"
 
-#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -9,98 +8,33 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
-#include <QSocketNotifier>
 #include <QStandardPaths>
 
 #include <algorithm>
 #include <limits>
+#include <optional>
 #include <utility>
 
-#ifdef Q_OS_LINUX
-#include <cerrno>
-#include <sys/timerfd.h>
-#include <unistd.h>
-#endif
-
+#include "deadlinescheduler.h"
 #include "remindmetime.h"
 
-namespace
-{
-// Suspend fallback sweep period: bounds how late an alarm can sound after wake where the
-// timerfd path is unavailable (non-Linux, or an injected test clock).
-constexpr int sweepIntervalMs = 500;
-
-// Realtime-absolute timerfd: fires when the wall clock hits the arming time, which for a deadline
-// already reached while suspended means immediately on resume. -1 where unavailable.
-int createRealtimeTimerFd()
-{
-#ifdef Q_OS_LINUX
-    return timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
-#else
-    return -1;
-#endif
-}
-}
-
-RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, std::function<qint64()> clock)
+RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, DeadlineScheduler *scheduler)
     : QObject(parent)
     , m_stateFilePath(stateFilePath.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/timers.json")
                                               : stateFilePath)
-    , m_hasInjectedClock(static_cast<bool>(clock))
-    , m_clock(clock ? std::move(clock) : []() {
-        return QDateTime::currentMSecsSinceEpoch();
-    })
+    , m_scheduler(scheduler ? scheduler : createDeadlineScheduler(this))
 {
     qRegisterMetaType<Remindme::TimerInfo>();
 
+    connect(m_scheduler, &DeadlineScheduler::deadlineReached, this, &RemindmeEngine::checkExpiredTimers);
+
     loadFromDisk();
-    m_expiryTimer.setSingleShot(true);
-    connect(&m_expiryTimer, &QTimer::timeout, this, &RemindmeEngine::checkExpiredTimers);
-
-    // The timerfd's absolute times are real wall clock; an injected test clock is not, so fall
-    // back to the QTimer mechanism the tests drive directly.
-    if (!m_hasInjectedClock) {
-        m_deadlineFd = createRealtimeTimerFd();
-#ifdef Q_OS_LINUX
-        if (m_deadlineFd >= 0) {
-            m_useTimerfd = true;
-            m_deadlineNotifier = new QSocketNotifier(m_deadlineFd, QSocketNotifier::Read, this);
-            connect(m_deadlineNotifier, &QSocketNotifier::activated, this, [this](QSocketDescriptor, QSocketNotifier::Type) {
-                // Drain the timerfd. The fd is non-blocking, so a spurious wakeup can read
-                // nothing (EAGAIN); only a genuine error is worth reporting.
-                quint64 expirations = 0;
-                const ssize_t bytes = ::read(m_deadlineFd, &expirations, sizeof(expirations));
-                if (bytes < 0 && errno != EAGAIN) {
-                    qWarning() << "Could not read timerfd, errno" << errno;
-                }
-                checkExpiredTimers();
-            });
-        }
-#endif
-    }
-
-    if (!m_useTimerfd) {
-        m_sweepTimer.setInterval(sweepIntervalMs);
-        connect(&m_sweepTimer, &QTimer::timeout, this, &RemindmeEngine::checkExpiredTimers);
-        // Started by scheduleExpiryCheck() only while timers exist, so an idle fallback-mode
-        // helper does not wake every sweepIntervalMs forever.
-    }
-
     scheduleExpiryCheck();
-}
-
-RemindmeEngine::~RemindmeEngine()
-{
-#ifdef Q_OS_LINUX
-    if (m_deadlineFd >= 0) {
-        ::close(m_deadlineFd);
-    }
-#endif
 }
 
 qint64 RemindmeEngine::nowMs() const
 {
-    return m_clock();
+    return m_scheduler->nowMs();
 }
 
 Remindme::TimerInfo RemindmeEngine::Create(qint32 durationSeconds, const QString &message)
@@ -273,42 +207,15 @@ void RemindmeEngine::saveToDisk() const
 void RemindmeEngine::scheduleExpiryCheck()
 {
     if (m_timers.isEmpty()) {
-        if (m_useTimerfd) {
-#ifdef Q_OS_LINUX
-            const itimerspec disarm{}; // zero it_value disarms the timerfd
-            timerfd_settime(m_deadlineFd, 0, &disarm, nullptr);
-#endif
-        } else {
-            m_expiryTimer.stop();
-            // Nothing to watch for: stop the periodic sweep so the fallback helper does not wake
-            // forever. It is restarted below as soon as a timer exists again.
-            m_sweepTimer.stop();
-        }
+        m_scheduler->setNextDeadline(std::nullopt);
         return;
-    }
-
-    if (!m_useTimerfd && !m_sweepTimer.isActive()) {
-        m_sweepTimer.start();
     }
 
     qint64 nextDeadline = std::numeric_limits<qint64>::max();
     for (const Remindme::TimerInfo &timer : std::as_const(m_timers)) {
         nextDeadline = std::min(nextDeadline, timer.deadline);
     }
-
-#ifdef Q_OS_LINUX
-    if (m_useTimerfd) {
-        // A past deadline (e.g. reached while suspended) makes the fd readable immediately.
-        const itimerspec ts{
-            {},
-            {time_t(nextDeadline / 1000), long(nextDeadline % 1000) * 1000000L},
-        };
-        timerfd_settime(m_deadlineFd, TFD_TIMER_ABSTIME, &ts, nullptr);
-        return;
-    }
-#endif
-    const qint64 now = nowMs();
-    m_expiryTimer.start(std::max<qint64>(0, nextDeadline - now));
+    m_scheduler->setNextDeadline(nextDeadline);
 }
 
 void RemindmeEngine::commitTimers()

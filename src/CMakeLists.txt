@@ -3,6 +3,12 @@
 # as the io.github.dcog989.remindme D-Bus service, which KRunner auto-activates on demand.
 add_executable(krunner-remindme
     engine/main.cpp
+    engine/deadlinescheduler.cpp
+    engine/deadlinescheduler.h
+    engine/qtimerdeadlinescheduler.cpp
+    engine/qtimerdeadlinescheduler.h
+    engine/timerfddeadlinescheduler.cpp
+    engine/timerfddeadlinescheduler.h
     engine/remindmeengine.cpp
     engine/remindmeengine.h
     engine/remindmetime.cpp

@@ -1,4 +1,5 @@
 #include "remindmeengine.h"
+#include "deadlinescheduler.h"
 #include "remindmetime.h"
 
 #include <QFile>
@@ -10,7 +11,38 @@
 #include <QTemporaryDir>
 #include <QTest>
 
+#include <functional>
+#include <optional>
+#include <utility>
+
 using namespace Remindme;
+
+// Deterministic scheduler for the engine tests: it records the deadline the engine armed and only
+// wakes the engine when the test calls fire(), so expiry never depends on wall time or an event
+// loop. The QTimer-based production fallback's own wait/sweep behaviour is covered separately in
+// deadlineschedulertest.cpp.
+class TestDeadlineScheduler : public DeadlineScheduler
+{
+    Q_OBJECT
+
+public:
+    explicit TestDeadlineScheduler(std::function<qint64()> clock, QObject *parent = nullptr)
+        : DeadlineScheduler(std::move(clock), parent)
+    {
+    }
+
+    void setNextDeadline(std::optional<qint64> nextDeadlineMs) override
+    {
+        deadline = nextDeadlineMs;
+    }
+
+    void fire()
+    {
+        Q_EMIT deadlineReached();
+    }
+
+    std::optional<qint64> deadline;
+};
 
 class RemindmeEngineTest : public QObject
 {
@@ -18,6 +50,7 @@ class RemindmeEngineTest : public QObject
 
 private:
     QScopedPointer<RemindmeEngine> engine;
+    QScopedPointer<TestDeadlineScheduler> scheduler;
     QScopedPointer<QTemporaryDir> tempDir;
     // Controllable clock: tests advance it instead of waiting on real time.
     qint64 fakeNow = 0;
@@ -29,9 +62,11 @@ private:
 
     void resetEngine()
     {
-        engine.reset(new RemindmeEngine(nullptr, stateFilePath(), [this]() {
+        engine.reset();
+        scheduler.reset(new TestDeadlineScheduler([this]() {
             return fakeNow;
         }));
+        engine.reset(new RemindmeEngine(nullptr, stateFilePath(), scheduler.data()));
     }
 
     static bool hasId(const QList<TimerInfo> &timers, int id)
@@ -61,6 +96,7 @@ private Q_SLOTS:
     void cleanup()
     {
         engine.reset();
+        scheduler.reset();
         tempDir.reset();
     }
 
@@ -165,9 +201,11 @@ private Q_SLOTS:
                        .toJson());
         file.close();
 
-        resetEngine(); // fires the expired timer immediately on start
+        resetEngine(); // arms the scheduler for the already-past deadline
 
-        QTRY_COMPARE_WITH_TIMEOUT(engine->List().size(), 0, 1000);
+        QVERIFY(scheduler->deadline.has_value());
+        scheduler->fire(); // the scheduler wakes the engine immediately on start
+        QCOMPARE(engine->List().size(), 0);
         QFile remaining(stateFilePath());
         QVERIFY(remaining.open(QIODevice::ReadOnly));
         QVERIFY(QJsonDocument::fromJson(remaining.readAll()).isArray());
@@ -283,13 +321,14 @@ private Q_SLOTS:
     void testExpiryAfterClockJump()
     {
         // Simulates a timer coming due while the machine was asleep: the wall clock (fakeNow)
-        // jumps forward past the deadline. Nothing calls checkExpiredTimers() directly -- the
-        // periodic wall-clock sweep (remindmeengine.cpp) must notice on its own within one
-        // sweep interval, without relying on any suspend notification.
+        // jumps forward past the deadline. The QTimer fallback's periodic wall-clock sweep that
+        // notices this on its own is covered in deadlineschedulertest.cpp; here the manual
+        // scheduler stands in for that wake.
         QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);
         engine->Create(60, QStringLiteral("nap"));
         fakeNow += 5 * 60 * 1000; // slept past the deadline
-        QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
+        scheduler->fire();
+        QCOMPARE(spy.count(), 1);
         QCOMPARE(engine->List().size(), 0);
     }
 

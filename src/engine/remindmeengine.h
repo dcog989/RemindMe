@@ -4,9 +4,6 @@
 #include <QMetaType>
 #include <QObject>
 #include <QString>
-#include <QTimer>
-
-#include <functional>
 
 namespace Remindme
 {
@@ -32,15 +29,16 @@ constexpr qint64 maxAlarmSoundMs = 10 * 60 * 1000;
 
 Q_DECLARE_METATYPE(Remindme::TimerInfo)
 
-class QSocketNotifier;
+class DeadlineScheduler;
 
 class RemindmeEngine : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, std::function<qint64()> clock = {});
-    ~RemindmeEngine() override;
+    // scheduler is injected by tests; when null the engine creates the production one (realtime
+    // timerfd where available, QTimer fallback otherwise) and parents it to itself.
+    explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, DeadlineScheduler *scheduler = nullptr);
 
     // Re-arms a timer that has already expired (and so moved to m_firedAlarms). The
     // Snooze(id) method handles the still-active case; both funnel into snoozeTimer().
@@ -51,8 +49,8 @@ public:
     bool Snooze(qint32 id);
 
     // Moves timers expired as of nowMs() to the fired set and emits timerExpired() for each.
-    // Called by the expiry timer(s); public so unit tests can drive expiry deterministically
-    // without real-time waits.
+    // Called by the scheduler; public so unit tests can drive expiry deterministically without
+    // real-time waits.
     void checkExpiredTimers();
 
     // Whether an expired alarm is still awaiting Snooze/Dismiss. Fired alarms are persisted
@@ -91,7 +89,7 @@ private:
     void loadFromDisk();
     void saveToDisk() const;
     void scheduleExpiryCheck();
-    // Persists m_timers and m_firedAlarms and re-arms the expiry timer. Call after any mutation.
+    // Persists m_timers and m_firedAlarms and re-arms the scheduler. Call after any mutation.
     void commitTimers();
     // Extends deadline by Remindme::snoozeDurationMs, anchored to now if it has already passed
     // (so snoozing an expired timer doesn't leave it expired again immediately).
@@ -107,20 +105,9 @@ private:
     // Expired but not yet acknowledged (Snooze/Dismiss). An id lives in exactly one of
     // m_timers/m_firedAlarms; this set is persisted so a session end does not lose the alarm.
     QMap<int, Remindme::TimerInfo> m_firedAlarms;
-    QTimer m_expiryTimer;
-    // Suspend fallback where the timerfd is unavailable (non-Linux, injected test clock): a
-    // monotonic QTimer pauses during suspend, so sweep the wall clock to bound wake lag. Runs
-    // only while timers exist (managed by scheduleExpiryCheck()), not idle.
-    QTimer m_sweepTimer;
-    // Linux, real clock: a realtime-absolute timerfd fixes expiry to the wall clock, so a deadline
-    // crossed during suspend fires on resume. When set, m_expiryTimer/m_sweepTimer are unused.
-    bool m_useTimerfd = false;
-    int m_deadlineFd = -1;
-    QSocketNotifier *m_deadlineNotifier = nullptr;
     QString m_stateFilePath;
-    // Whether the caller injected a clock. Captured before m_clock consumes the argument, so the
-    // constructor never reads the moved-from function.
-    bool m_hasInjectedClock = false;
-    std::function<qint64()> m_clock;
+    // Owned by the engine only when it created the scheduler (scheduler argument null); an
+    // injected scheduler stays owned by the caller.
+    DeadlineScheduler *m_scheduler = nullptr;
     int m_nextId = 1;
 };
