@@ -27,7 +27,6 @@ const QString s_cancelCommand{QStringLiteral("cancel ")};
 // keeps parsing and construction from drifting apart.
 const QString s_createPrefix{QStringLiteral("create:")};
 const QString s_timerPrefix{QStringLiteral("timer")};
-const QString s_cancelIdPrefix{QStringLiteral("cancelid:")};
 const QString s_cancelMessagePrefix{QStringLiteral("cancelmsg:")};
 const QString s_cancelPrefix{QStringLiteral("cancel:")};
 
@@ -167,11 +166,6 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
             }
             m_engine->Show(id);
         }
-    } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelIdPrefix)) {
-        // Checked before the "cancel:" case below: both ids start with "cancel", so an
-        // explicit trailing ":" after each tag keeps the prefixes mutually exclusive
-        // regardless of check order.
-        m_engine->Cancel(rest->toInt());
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
         m_engine->CancelByMessage(*rest);
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelPrefix)) {
@@ -301,7 +295,7 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
             addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
             return;
         }
-        matches.append(makeMatch(s_cancelIdPrefix + QString::number(*id), i18n("Cancel timer #%1", idString), relevanceCancel));
+        matches.append(makeMatch(s_cancelPrefix + QString::number(*id), i18n("Cancel timer #%1", idString), relevanceCancel));
     } else if (idMarker) {
         // A "#" prefix pins the term as an id, so a non-numeric remainder names no timer.
         addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
