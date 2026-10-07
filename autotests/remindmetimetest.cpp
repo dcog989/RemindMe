@@ -165,6 +165,35 @@ private Q_SLOTS:
         QVERIFY(!parseDurationAndMessage(QStringLiteral(":30")).valid);
         QVERIFY(!parseDurationAndMessage(QStringLiteral("1::30")).valid);
     }
+
+    void testColonComponentsMustBeInRange()
+    {
+        // Trailing components are minutes/seconds and must be < 60
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("0:99")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1:60")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1:2:60")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1:60:00")).valid);
+
+        // Only the total is capped, so a large leading unit is fine up to maxDurationSeconds
+        const Duration hour = parseDurationAndMessage(QStringLiteral("60:00"));
+        QVERIFY(hour.valid);
+        QCOMPARE(hour.seconds, 3600);
+        QVERIFY(parseDurationAndMessage(QStringLiteral("1:59")).valid);
+    }
+
+    void testNegativeColonComponentIsInvalid()
+    {
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1:-30")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("-1:30")).valid);
+    }
+
+    void testHugeFractionIsInvalid()
+    {
+        // Must be range-checked in the double domain before qRound64, which is undefined
+        // out of range and must not be reached.
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1.0e300")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1e300h")).valid);
+    }
 };
 
 QTEST_GUILESS_MAIN(RemindmeTimeTest)

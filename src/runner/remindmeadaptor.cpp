@@ -204,7 +204,7 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
 {
     const Remindme::Duration duration = Remindme::parseDurationAndMessage(term);
     if (!duration.valid) {
-        addSimpleMatch(matches, i18n("Invalid: %1", term.toHtmlEscaped()), i18n("Use e.g. 5, 20s, 4h, 1:30"));
+        addSimpleMatch(matches, i18n("Invalid: %1", term.toHtmlEscaped()), i18n("Use e.g. 5, 20s, 4h, or 1:30 (min:s)"));
         return;
     }
 
