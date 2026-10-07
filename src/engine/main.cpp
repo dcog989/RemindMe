@@ -42,6 +42,19 @@ int main(int argc, char **argv)
     // remaining timers; the process only exits once the engine reports nothing left to do.
     app.setQuitOnLastWindowClosed(false);
 
+    // Single-instance guard, before any side effects: constructing the engine may load state and
+    // back up a corrupt file, and autostart writes a .desktop entry. If another helper already
+    // owns the name, exit without touching either.
+    QDBusConnection bus = QDBusConnection::sessionBus();
+    if (!bus.isConnected()) {
+        qWarning() << "No D-Bus session bus available; cannot start" << s_serviceName;
+        return 1;
+    }
+    if (!bus.registerService(s_serviceName)) {
+        qWarning() << "Another instance already owns" << s_serviceName << "; exiting";
+        return 1;
+    }
+
     RemindmeEngine engine;
 
     // Enable the autostart entry while a timer or an unacknowledged alarm exists so it is
@@ -146,12 +159,11 @@ int main(int argc, char **argv)
 
     new RemindmeAdaptor(&engine);
 
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    if (!bus.registerService(s_serviceName)) {
-        qWarning() << "Could not register D-Bus service" << s_serviceName;
+    if (!bus.registerObject(QStringLiteral("/"), &engine)) {
+        qWarning() << "Could not register D-Bus object for" << s_serviceName;
+        bus.unregisterService(s_serviceName);
         return 1;
     }
-    bus.registerObject(QStringLiteral("/"), &engine);
 
     // One-shot fallback for the single case that emits no count change: an activation that
     // only queried an already-empty state. Give any pending call time to arrive, then exit
