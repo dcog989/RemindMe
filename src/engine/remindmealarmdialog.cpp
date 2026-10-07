@@ -5,6 +5,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
+#include <QPointer>
 #include <QPushButton>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -95,16 +96,20 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
     // until the notification is closed; it is a child of the dialog, so dismissing or
     // snoozing (which closes the dialog) stops the looping.
     if (expired) {
-        KNotification *sound = new KNotification(QStringLiteral("remindme"), KNotification::LoopSound, this);
+        // QPointer: KNotification auto-deletes itself once closed (auto-delete is on by default
+        // for C++), so the timer below must not assume the sound is still alive.
+        QPointer<KNotification> sound = new KNotification(QStringLiteral("remindme"), KNotification::LoopSound, this);
         sound->setTitle(i18n("Timer finished"));
         sound->setText(timer.message.isEmpty() ? i18n("Your timer has finished") : timer.message);
         sound->sendEvent();
         // Stop the looping alarm after a while, but keep the window open until dismissed.
         // The dialog is the timer's context object, so if the user dismisses or snoozes
         // (destroying the dialog) the timer is cancelled and never touches the deleted
-        // notification.
+        // notification; if the notification closed on its own first, sound is already null.
         QTimer::singleShot(Remindme::maxAlarmSoundMs, this, [sound]() {
-            sound->close();
+            if (sound) {
+                sound->close();
+            }
         });
     }
 }
