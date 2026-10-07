@@ -2,6 +2,7 @@
 
 #include <QObject>
 
+#include "remindmealarmdialog.h"
 #include "remindmeengine.h"
 
 // Presents expiry alarms and manual reminders, owning the dialog/sound lifetime so the host only
@@ -14,9 +15,9 @@ class AlarmPresenter : public QObject
 public:
     explicit AlarmPresenter(RemindmeEngine &engine, QObject *parent = nullptr);
 
-    // Presents timer: an expiry alarm (looping sound) when expired, otherwise a reminder for a
-    // still-active timer (shown without the alarm sound). Tracked until dismissed or snoozed.
-    void present(const Remindme::TimerInfo &timer, bool expired);
+    // Presents timer as kind: an expiry alarm (looping sound) or a reminder for a still-active
+    // timer (shown without the alarm sound). Tracked until dismissed or snoozed.
+    void present(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind);
 
     // Whether a dialog or an in-flight sound notification is still active. The host must not exit
     // while this is true, or it would tear down the process over an alarm the user is acting on.
@@ -27,7 +28,7 @@ Q_SIGNALS:
     void presentationsFinished();
 
 private:
-    void presentDialog(const Remindme::TimerInfo &timer, bool expired);
+    void presentDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind);
     void presentSound(const Remindme::TimerInfo &timer);
     void onDialogClosed();
     void onSoundClosed();

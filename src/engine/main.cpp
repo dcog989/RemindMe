@@ -77,10 +77,10 @@ int main(int argc, char **argv)
     };
 
     QObject::connect(&engine, &RemindmeEngine::timerExpired, &presenter, [&presenter](const Remindme::TimerInfo &timer) {
-        presenter.present(timer, /*expired=*/true);
+        presenter.present(timer, Remindme::AlarmKind::Expiry);
     });
     QObject::connect(&engine, &RemindmeEngine::showReminderRequested, &presenter, [&presenter](const Remindme::TimerInfo &timer) {
-        presenter.present(timer, /*expired=*/false);
+        presenter.present(timer, Remindme::AlarmKind::Reminder);
     });
     // The last alarm window or in-flight sound going away may have removed the last reason to stay
     // alive (e.g. a cancel-by-dismissal, whose count change fired while the window was still

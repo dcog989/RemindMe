@@ -13,18 +13,18 @@ AlarmPresenter::AlarmPresenter(RemindmeEngine &engine, QObject *parent)
 {
 }
 
-void AlarmPresenter::present(const Remindme::TimerInfo &timer, bool expired)
+void AlarmPresenter::present(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind)
 {
     // Headless contexts (e.g. CI, no desktop) cannot show a window. An expired timer was already
     // removed by the engine, so the alarm degrades to a single sound notification; a manually
     // requested reminder is simply a no-op.
     if (QGuiApplication::platformName() == QLatin1String("offscreen")) {
-        if (expired) {
+        if (kind == Remindme::AlarmKind::Expiry) {
             presentSound(timer);
         }
         return;
     }
-    presentDialog(timer, expired);
+    presentDialog(timer, kind);
 }
 
 bool AlarmPresenter::isPresenting() const
@@ -32,11 +32,11 @@ bool AlarmPresenter::isPresenting() const
     return m_openDialogCount > 0 || m_pendingSoundCount > 0;
 }
 
-void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, bool expired)
+void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind)
 {
     // The dialog shows the message and, for the expiry alarm, plays a looping alarm sound
     // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
-    auto *dialog = new RemindmeAlarmDialog(timer, expired, m_engine.nowMs());
+    auto *dialog = new RemindmeAlarmDialog(timer, kind, m_engine.nowMs());
     ++m_openDialogCount;
     connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer]() {
         m_engine.snooze(timer);

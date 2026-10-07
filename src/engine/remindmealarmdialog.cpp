@@ -50,13 +50,14 @@ QString overdueText(qint64 deadlineMs, qint64 nowMs)
 }
 }
 
-RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool expired, qint64 nowMs, QWidget *parent)
+RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind, qint64 nowMs, QWidget *parent)
     : QDialog(parent)
 {
     setAttribute(Qt::WA_DeleteOnClose);
 
+    const bool isExpiry = kind == Remindme::AlarmKind::Expiry;
     QVBoxLayout *layout = new QVBoxLayout(this);
-    if (expired) {
+    if (isExpiry) {
         setWindowTitle(Remindme::alarmTitle());
         if (!timer.message.isEmpty()) {
             QLabel *messageLabel = new QLabel(timer.message, this);
@@ -90,7 +91,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
     QPushButton *snoozeButton = new QPushButton(i18n("Snooze +1 minute"), this);
     // For a still-active timer the destructive action is cancelling it, so name it accordingly
     // rather than "Dismiss" (which, for the expired alarm, only acknowledges the alarm).
-    QPushButton *dismissButton = new QPushButton(expired ? i18n("Dismiss") : i18n("Cancel timer"), this);
+    QPushButton *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
     buttons->addWidget(snoozeButton);
     buttons->addWidget(dismissButton);
     layout->addLayout(buttons);
@@ -105,7 +106,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
 
     // The expiry alarm loops the "remindme" sound until the dialog closes; AlarmSound is parented
     // to the dialog, so dismissing or snoozing (which destroys it) stops the sound.
-    if (expired) {
+    if (isExpiry) {
         new AlarmSound(timer.message, this);
     }
 }
