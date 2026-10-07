@@ -60,18 +60,32 @@ Duration parseDurationAndMessage(const QString &input)
         }
         const QString numberPart = hasUnit ? timeToken.left(timeToken.size() - 1) : timeToken;
 
+        // Parse through the locale (so native digits work) but reject group separators, so a
+        // grouped integer cannot pre-empt the fractional form below.
+        QLocale locale;
+        locale.setNumberOptions(QLocale::RejectGroupSeparator);
+
         // Integer form, e.g. "5", "20s", "4h"
         bool numberOk = false;
-        const int number = QLocale().toInt(numberPart, &numberOk);
+        const int number = locale.toInt(numberPart, &numberOk);
         if (numberOk) {
             setSecondsIfValid(qint64(number) * multiplier);
         }
-        // Fractional form, e.g. ".5", ".5m", ".5h", rounded to whole seconds
-        if (!result.valid && numberPart.contains(QLatin1Char('.'))) {
-            bool fractionOk = false;
-            const double value = QLocale().toDouble(numberPart, &fractionOk);
-            if (fractionOk) {
-                setSecondsIfValid(qRound64(value * multiplier));
+        // Fractional form, e.g. ".5", ".5m", "0,5h", rounded to whole seconds. The fraction is
+        // detected with the locale's decimal separator, and the ASCII dot a numeric keypad emits
+        // is accepted as an alias for it.
+        if (!result.valid) {
+            const QString decimalPoint = locale.decimalPoint();
+            QString fractionPart = numberPart;
+            if (decimalPoint != QLatin1String(".")) {
+                fractionPart.replace(QLatin1Char('.'), decimalPoint);
+            }
+            if (fractionPart.contains(decimalPoint)) {
+                bool fractionOk = false;
+                const double value = locale.toDouble(fractionPart, &fractionOk);
+                if (fractionOk) {
+                    setSecondsIfValid(qRound64(value * multiplier));
+                }
             }
         }
     }

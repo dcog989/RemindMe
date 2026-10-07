@@ -107,6 +107,21 @@ private Q_SLOTS:
         QCOMPARE(duration.seconds, 1);
     }
 
+    void testFractionalCommaLocale()
+    {
+        // In a comma-decimal locale a fraction is written with ',', and the ASCII dot a numeric
+        // keypad emits is accepted as an alias for it. Restore the locale immediately.
+        const QLocale previous = QLocale();
+        QLocale::setDefault(QLocale(QLocale::German));
+        const Duration comma = parseDurationAndMessage(QStringLiteral("0,5"));
+        const Duration dot = parseDurationAndMessage(QStringLiteral("0.5"));
+        QLocale::setDefault(previous);
+        QVERIFY(comma.valid);
+        QCOMPARE(comma.seconds, 30);
+        QVERIFY(dot.valid);
+        QCOMPARE(dot.seconds, 30);
+    }
+
     void testZeroIsInvalid()
     {
         QVERIFY(!parseDurationAndMessage(QStringLiteral("0")).valid);
