@@ -51,7 +51,7 @@ std::optional<Remindme::TimerInfo> RemindmeEngine::create(qint32 durationSeconds
     return timer;
 }
 
-QList<Remindme::TimerInfo> RemindmeEngine::list()
+QList<Remindme::TimerInfo> RemindmeEngine::list() const
 {
     // m_timers is a QMap, so values() is already sorted by id.
     return m_timers.values();

@@ -49,7 +49,7 @@ public:
     // Creates a timer lasting durationSeconds and returns it, or std::nullopt when the duration is
     // out of range (no timer is created).
     std::optional<Remindme::TimerInfo> create(qint32 durationSeconds, const QString &message);
-    QList<Remindme::TimerInfo> list();
+    QList<Remindme::TimerInfo> list() const;
     // Whether any active timer exists / whether the active timer with id exists. Avoids the value
     // copy list() makes when the caller only needs a membership test.
     bool isEmpty() const;
