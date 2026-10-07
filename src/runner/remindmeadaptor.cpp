@@ -281,27 +281,26 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
         return;
     }
 
-    bool isNumber = false;
     // Accept a leading "#" as an id marker, matching how ids are shown in "rme list". The marker
     // means the term is an id, so a non-numeric "#foo" is reported as a missing id rather than
     // matched as message text with the "#" silently stripped.
     const bool idMarker = target.startsWith(QLatin1Char('#'));
     const QString idString = idMarker ? target.mid(1) : target;
     // Parse through the locale, matching the duration parser, so the native digits a user typed
-    // for the duration can also address its id. RejectGroupSeparator keeps a message such as
-    // "1,5" or "1.5" from silently reading as the id 15 under a locale that groups either way.
-    QLocale idLocale;
-    idLocale.setNumberOptions(QLocale::RejectGroupSeparator);
-    const int id = idLocale.toInt(idString, &isNumber);
+    // for the duration can also address its id.
+    const std::optional<int> id = Remindme::parseLocaleInt(idString);
 
-    if (isNumber || idMarker) {
+    if (id) {
         // Validate the id refers to an active timer, so a stale or mistyped id is not
         // silently accepted as a no-op cancellation.
-        if (!m_engine->contains(id)) {
+        if (!m_engine->contains(*id)) {
             addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
             return;
         }
-        matches.append(makeMatch(s_cancelIdPrefix + QString::number(id), i18n("Cancel timer #%1", idString), relevanceCancel));
+        matches.append(makeMatch(s_cancelIdPrefix + QString::number(*id), i18n("Cancel timer #%1", idString), relevanceCancel));
+    } else if (idMarker) {
+        // A "#" prefix pins the term as an id, so a non-numeric remainder names no timer.
+        addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
     } else {
         // The term is a message substring; validate it matches before offering, like the id path,
         // so the result is never a no-op. Both the offer and the actual cancellation use the same

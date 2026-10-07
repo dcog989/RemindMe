@@ -6,6 +6,18 @@
 
 namespace Remindme
 {
+std::optional<int> parseLocaleInt(const QString &text)
+{
+    QLocale locale;
+    locale.setNumberOptions(QLocale::RejectGroupSeparator);
+    bool ok = false;
+    const int value = locale.toInt(text, &ok);
+    if (!ok) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 Duration parseDurationAndMessage(const QString &input)
 {
     Duration result;
@@ -27,25 +39,19 @@ Duration parseDurationAndMessage(const QString &input)
         }
     };
 
-    // Parse numbers through the locale (so native digits work) but reject group separators, so a
-    // grouped value cannot be misread on any path (colon components and suffixed numbers alike).
-    QLocale locale;
-    locale.setNumberOptions(QLocale::RejectGroupSeparator);
-
     if (timeToken.contains(QLatin1Char(':'))) {
         const QStringList parts = timeToken.split(QLatin1Char(':'));
         if (parts.size() == 2 || parts.size() == 3) {
             QList<int> values;
             bool ok = true;
             for (const QString &part : parts) {
-                bool partOk = false;
-                const int value = locale.toInt(part, &partOk);
+                const std::optional<int> value = parseLocaleInt(part);
                 // Reject empty or negative components, so "1:-30" cannot borrow from the leading unit.
-                if (!partOk || value < 0) {
+                if (!value || *value < 0) {
                     ok = false;
                     break;
                 }
-                values.append(value);
+                values.append(*value);
             }
             // Everything after the leading unit is minutes/seconds and must be < 60, so "0:99"
             // is rejected instead of being read as 99 seconds.
@@ -76,15 +82,15 @@ Duration parseDurationAndMessage(const QString &input)
         const QString numberPart = hasUnit ? timeToken.left(timeToken.size() - 1) : timeToken;
 
         // Integer form, e.g. "5", "20s", "4h"
-        bool numberOk = false;
-        const int number = locale.toInt(numberPart, &numberOk);
-        if (numberOk) {
-            setSecondsIfValid(qint64(number) * multiplier);
+        const std::optional<int> number = parseLocaleInt(numberPart);
+        if (number) {
+            setSecondsIfValid(qint64(*number) * multiplier);
         }
         // Fractional form, e.g. ".5", ".5m", "0,5h", rounded to whole seconds. The fraction is
         // detected with the locale's decimal separator, and the ASCII dot a numeric keypad emits
         // is accepted as an alias for it.
         if (!result.valid) {
+            const QLocale locale;
             const QString decimalPoint = locale.decimalPoint();
             QString fractionPart = numberPart;
             if (decimalPoint != QLatin1String(".")) {
