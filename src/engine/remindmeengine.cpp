@@ -37,7 +37,7 @@ qint64 RemindmeEngine::nowMs() const
     return m_scheduler->nowMs();
 }
 
-Remindme::TimerInfo RemindmeEngine::Create(qint32 durationSeconds, const QString &message)
+Remindme::TimerInfo RemindmeEngine::create(qint32 durationSeconds, const QString &message)
 {
     Remindme::TimerInfo timer;
     if (durationSeconds <= 0 || durationSeconds > Remindme::maxDurationSeconds) {
@@ -51,9 +51,9 @@ Remindme::TimerInfo RemindmeEngine::Create(qint32 durationSeconds, const QString
     return timer;
 }
 
-QList<Remindme::TimerInfo> RemindmeEngine::List()
+QList<Remindme::TimerInfo> RemindmeEngine::list()
 {
-    // m_timers is a QMap, so values() is already sorted by id (the order the D-Bus interface documents)
+    // m_timers is a QMap, so values() is already sorted by id.
     return m_timers.values();
 }
 
@@ -67,7 +67,7 @@ bool RemindmeEngine::contains(qint32 id) const
     return m_timers.contains(id);
 }
 
-bool RemindmeEngine::Cancel(qint32 id)
+bool RemindmeEngine::cancel(qint32 id)
 {
     const bool removedActive = m_timers.remove(id) > 0;
     // Clearing a fired alarm is how "Dismiss" acknowledges it after a restart.
@@ -79,7 +79,7 @@ bool RemindmeEngine::Cancel(qint32 id)
     return false;
 }
 
-bool RemindmeEngine::CancelByMessage(const QString &message)
+bool RemindmeEngine::cancelByMessage(const QString &message)
 {
     const QList<Remindme::TimerInfo> matches = findTimersByMessage(message);
     if (matches.isEmpty()) {
@@ -157,7 +157,7 @@ void RemindmeEngine::loadFromDisk()
         timer.message = object.value(QStringLiteral("message")).toString();
         if (timer.id >= 0 && timer.deadline > 0) {
             // A fired entry was already shown and is awaiting Snooze/Dismiss; keep it out of the
-            // active set so List() and scheduling ignore it while it stays persisted for replay.
+            // active set so list() and scheduling ignore it while it stays persisted for replay.
             if (object.value(QStringLiteral("fired")).toBool()) {
                 m_firedAlarms.insert(timer.id, timer);
             } else {
@@ -269,7 +269,7 @@ void RemindmeEngine::checkExpiredTimers()
     }
 }
 
-bool RemindmeEngine::Snooze(qint32 id)
+bool RemindmeEngine::snooze(qint32 id)
 {
     const auto it = m_timers.constFind(id);
     if (it == m_timers.cend()) {
@@ -281,7 +281,7 @@ bool RemindmeEngine::Snooze(qint32 id)
     return true;
 }
 
-void RemindmeEngine::Show(qint32 id)
+void RemindmeEngine::show(qint32 id)
 {
     const auto it = m_timers.constFind(id);
     if (it == m_timers.cend()) {

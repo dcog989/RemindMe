@@ -42,13 +42,13 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, bool expire
         if (expired) {
             m_engine.rearmExpiredTimer(timer);
         } else {
-            m_engine.Snooze(timer.id);
+            m_engine.snooze(timer.id);
         }
     });
-    // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; Cancel handles
+    // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; cancel handles
     // both. Closing the window without a button is a no-op.
     connect(dialog, &RemindmeAlarmDialog::dismissRequested, this, [this, timer]() {
-        m_engine.Cancel(timer.id);
+        m_engine.cancel(timer.id);
     });
     // The window is WA_DeleteOnClose, so closing it may be the last thing holding the process up
     // (e.g. a cancel-by-dismissal leaves no timers); let the host re-check idleness.

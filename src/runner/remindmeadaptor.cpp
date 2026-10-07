@@ -149,27 +149,27 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     if (const std::optional<QString> rest = stripPrefix(matchId, s_createPrefix)) {
         const Remindme::Duration duration = Remindme::parseDurationAndMessage(*rest);
         if (duration.valid) {
-            m_engine->Create(duration.seconds, duration.message);
+            m_engine->create(duration.seconds, duration.message);
         }
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_timerPrefix)) {
         // A listed timer shows its reminder by default; its "cancel" action cancels it.
         const int id = rest->toInt();
         if (actionId == QLatin1String("cancel")) {
-            m_engine->Cancel(id);
+            m_engine->cancel(id);
         } else {
             // KRunner hands us a Wayland activation token (SetActivationToken) so the alarm
             // window can take focus. Qt's QWindow::requestActivate(), reached via the dialog's
             // activateWindow(), consumes XDG_ACTIVATION_TOKEN from the environment, so set it
-            // before Show() synchronously opens the window.
+            // before show() synchronously opens the window.
             if (!activationToken.isEmpty()) {
                 qputenv("XDG_ACTIVATION_TOKEN", activationToken.toUtf8());
             }
-            m_engine->Show(id);
+            m_engine->show(id);
         }
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
-        m_engine->CancelByMessage(*rest);
+        m_engine->cancelByMessage(*rest);
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelPrefix)) {
-        m_engine->Cancel(rest->toInt());
+        m_engine->cancel(rest->toInt());
     }
 }
 
@@ -248,7 +248,7 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
 
 void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
 {
-    const QList<Remindme::TimerInfo> timers = m_engine->List();
+    const QList<Remindme::TimerInfo> timers = m_engine->list();
     if (timers.isEmpty()) {
         addSimpleMatch(matches, i18n("No timers"), i18n("Use rme with a duration to start one"));
         return;
@@ -268,7 +268,7 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
 {
     if (target.isEmpty()) {
         // "rme cancel" with no target: list every active timer so the user can pick one to cancel
-        const QList<Remindme::TimerInfo> timers = m_engine->List();
+        const QList<Remindme::TimerInfo> timers = m_engine->list();
         if (timers.isEmpty()) {
             addSimpleMatch(matches, i18n("No timers"), i18n("There are no timers to cancel"));
             return;

@@ -26,12 +26,11 @@ public:
     explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, DeadlineScheduler *scheduler = nullptr);
 
     // Re-arms a timer that has already expired (and so moved to m_firedAlarms). The
-    // Snooze(id) method handles the still-active case; both funnel into snoozeTimer().
+    // snooze(id) method handles the still-active case; both funnel into snoozeTimer().
     void rearmExpiredTimer(const Remindme::TimerInfo &timer);
 
-    // Snoozes a still-active timer. Not part of the D-Bus interface (no external consumer);
-    // used by Show()'s notification action and the engine unit tests.
-    bool Snooze(qint32 id);
+    // Snoozes a still-active timer.
+    bool snooze(qint32 id);
 
     // Moves timers expired as of nowMs() to the fired set and emits timerExpired() for each.
     // Called by the scheduler; public so unit tests can drive expiry deterministically without
@@ -48,19 +47,19 @@ public:
     // tests. Exposed so UI built around timers does not reach for the wall clock directly.
     qint64 nowMs() const;
 
-    Remindme::TimerInfo Create(qint32 durationSeconds, const QString &message);
-    QList<Remindme::TimerInfo> List();
+    Remindme::TimerInfo create(qint32 durationSeconds, const QString &message);
+    QList<Remindme::TimerInfo> list();
     // Whether any active timer exists / whether the active timer with id exists. Avoids the value
-    // copy List() makes when the caller only needs a membership test.
+    // copy list() makes when the caller only needs a membership test.
     bool isEmpty() const;
     bool contains(qint32 id) const;
-    bool Cancel(qint32 id);
-    bool CancelByMessage(const QString &message);
+    bool cancel(qint32 id);
+    bool cancelByMessage(const QString &message);
     // Active and fired timers whose message contains term (case-insensitive substring). Shared by
-    // the "cancel by message" UI (to validate and describe the match) and CancelByMessage (to
+    // the "cancel by message" UI (to validate and describe the match) and cancelByMessage (to
     // remove exactly that set), so the offer and the action cannot drift apart.
     QList<Remindme::TimerInfo> findTimersByMessage(const QString &term) const;
-    void Show(qint32 id);
+    void show(qint32 id);
 
 Q_SIGNALS:
     void timerExpired(const Remindme::TimerInfo &timer);
@@ -80,7 +79,7 @@ private:
     // (so snoozing an expired timer doesn't leave it expired again immediately).
     qint64 extendedDeadline(qint64 deadline) const;
     // Extends timer's deadline and (re-)inserts it into m_timers. The same operation whether
-    // snoozing a still-active timer (Snooze(id) keeps the time that was left) or re-arming one
+    // snoozing a still-active timer (snooze(id) keeps the time that was left) or re-arming one
     // that already expired and was moved to m_firedAlarms (rearmExpiredTimer()).
     void snoozeTimer(Remindme::TimerInfo timer);
 

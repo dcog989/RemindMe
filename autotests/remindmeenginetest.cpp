@@ -103,22 +103,22 @@ private Q_SLOTS:
     void testCreateAndList()
     {
         const qint64 before = fakeNow;
-        const TimerInfo first = engine->Create(5 * 60, QStringLiteral("pasta"));
+        const TimerInfo first = engine->create(5 * 60, QStringLiteral("pasta"));
         QCOMPARE(first.id, 1);
         QCOMPARE(first.deadline, before + 5 * 60 * 1000);
         QCOMPARE(first.message, QStringLiteral("pasta"));
 
-        const TimerInfo second = engine->Create(60, QString());
+        const TimerInfo second = engine->create(60, QString());
         QCOMPARE(second.id, 2);
 
-        const QList<TimerInfo> timers = engine->List();
+        const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 2);
         QVERIFY(hasId(timers, 1));
         QVERIFY(hasId(timers, 2));
         QCOMPARE(timers.at(0).id, 1); // sorted by id, as the D-Bus interface documents
         QCOMPARE(timers.at(1).id, 2);
 
-        // Membership helpers used by the host and runner avoid the List() copy
+        // Membership helpers used by the host and runner avoid the list() copy
         QVERIFY(!engine->isEmpty());
         QVERIFY(engine->contains(1));
         QVERIFY(engine->contains(2));
@@ -127,64 +127,64 @@ private Q_SLOTS:
 
     void testCreateRejectsInvalidDurations()
     {
-        QCOMPARE(engine->Create(0, QString()).id, -1);
-        QCOMPARE(engine->Create(-5, QString()).id, -1);
-        QCOMPARE(engine->Create(maxDurationSeconds + 1, QString()).id, -1);
-        QVERIFY(engine->List().isEmpty());
+        QCOMPARE(engine->create(0, QString()).id, -1);
+        QCOMPARE(engine->create(-5, QString()).id, -1);
+        QCOMPARE(engine->create(maxDurationSeconds + 1, QString()).id, -1);
+        QVERIFY(engine->list().isEmpty());
 
         // Boundary values are still accepted
-        QVERIFY(engine->Create(maxDurationSeconds, QString()).id > 0);
-        QCOMPARE(engine->List().size(), 1);
+        QVERIFY(engine->create(maxDurationSeconds, QString()).id > 0);
+        QCOMPARE(engine->list().size(), 1);
     }
 
     void testCancelById()
     {
-        engine->Create(60, QStringLiteral("one"));
-        engine->Create(60, QStringLiteral("two"));
+        engine->create(60, QStringLiteral("one"));
+        engine->create(60, QStringLiteral("two"));
 
-        QVERIFY(engine->Cancel(1));
-        QCOMPARE(engine->List().size(), 1);
-        QVERIFY(hasId(engine->List(), 2));
+        QVERIFY(engine->cancel(1));
+        QCOMPARE(engine->list().size(), 1);
+        QVERIFY(hasId(engine->list(), 2));
 
-        QVERIFY(!engine->Cancel(1)); // already gone
-        QVERIFY(!engine->Cancel(99)); // never existed
+        QVERIFY(!engine->cancel(1)); // already gone
+        QVERIFY(!engine->cancel(99)); // never existed
     }
 
     void testCancelByMessage()
     {
-        engine->Create(60, QStringLiteral("meeting"));
-        engine->Create(60, QStringLiteral("meeting"));
-        engine->Create(60, QStringLiteral("lunch"));
+        engine->create(60, QStringLiteral("meeting"));
+        engine->create(60, QStringLiteral("meeting"));
+        engine->create(60, QStringLiteral("lunch"));
 
-        QVERIFY(engine->CancelByMessage(QStringLiteral("meeting")));
-        const QList<TimerInfo> timers = engine->List();
+        QVERIFY(engine->cancelByMessage(QStringLiteral("meeting")));
+        const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
         QCOMPARE(timers.constFirst().message, QStringLiteral("lunch"));
 
-        QVERIFY(!engine->CancelByMessage(QStringLiteral("meeting"))); // none left
-        QVERIFY(!engine->CancelByMessage(QStringLiteral("none")));
+        QVERIFY(!engine->cancelByMessage(QStringLiteral("meeting"))); // none left
+        QVERIFY(!engine->cancelByMessage(QStringLiteral("none")));
 
         // Matching is a case-insensitive substring, not exact equality
-        engine->Create(60, QStringLiteral("Call Mom"));
-        QVERIFY(engine->CancelByMessage(QStringLiteral("call")));
-        QCOMPARE(engine->List().size(), 1); // only "lunch" remains
-        QCOMPARE(engine->List().constFirst().message, QStringLiteral("lunch"));
+        engine->create(60, QStringLiteral("Call Mom"));
+        QVERIFY(engine->cancelByMessage(QStringLiteral("call")));
+        QCOMPARE(engine->list().size(), 1); // only "lunch" remains
+        QCOMPARE(engine->list().constFirst().message, QStringLiteral("lunch"));
     }
 
     void testPersistenceAcrossRestart()
     {
-        const qint64 deadline = engine->Create(600, QStringLiteral("hello")).deadline;
+        const qint64 deadline = engine->create(600, QStringLiteral("hello")).deadline;
         engine.reset();
         resetEngine(); // reload from disk
 
-        QCOMPARE(engine->List().size(), 1);
-        const TimerInfo restored = engine->List().constFirst();
+        QCOMPARE(engine->list().size(), 1);
+        const TimerInfo restored = engine->list().constFirst();
         QCOMPARE(restored.id, 1);
         QCOMPARE(restored.message, QStringLiteral("hello"));
         QCOMPARE(restored.deadline, deadline);
 
         // The next id must continue after the restored timer
-        QCOMPARE(engine->Create(60, QString()).id, 2);
+        QCOMPARE(engine->create(60, QString()).id, 2);
     }
 
     void testExpiredOnRestart()
@@ -205,7 +205,7 @@ private Q_SLOTS:
 
         QVERIFY(scheduler->deadline.has_value());
         scheduler->fire(); // the scheduler wakes the engine immediately on start
-        QCOMPARE(engine->List().size(), 0);
+        QCOMPARE(engine->list().size(), 0);
         QFile remaining(stateFilePath());
         QVERIFY(remaining.open(QIODevice::ReadOnly));
         QVERIFY(QJsonDocument::fromJson(remaining.readAll()).isArray());
@@ -219,7 +219,7 @@ private Q_SLOTS:
         file.close();
 
         resetEngine();
-        QCOMPARE(engine->List().size(), 0);
+        QCOMPARE(engine->list().size(), 0);
 
         // The unreadable file is preserved as .bak and not overwritten by the next save.
         QVERIFY(!QFile::exists(stateFilePath()));
@@ -227,22 +227,22 @@ private Q_SLOTS:
         QVERIFY(backup.open(QIODevice::ReadOnly));
         QCOMPARE(backup.readAll(), QByteArray("this is not json"));
 
-        QCOMPARE(engine->Create(60, QString()).id, 1); // next mutation writes a fresh file
+        QCOMPARE(engine->create(60, QString()).id, 1); // next mutation writes a fresh file
         QVERIFY(QFile::exists(stateFilePath()));
     }
 
     void testSnoozeRearmsExpiredTimer()
     {
-        const TimerInfo timer = engine->Create(1, QStringLiteral("tea"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("tea"));
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
 
-        QCOMPARE(engine->List().size(), 0); // expired and no longer active
+        QCOMPARE(engine->list().size(), 0); // expired and no longer active
         QVERIFY(engine->hasPendingAlarms()); // but awaiting acknowledgment
 
         engine->rearmExpiredTimer(timer);
 
-        const QList<TimerInfo> timers = engine->List();
+        const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
         QCOMPARE(timers.constFirst().id, timer.id);
         QCOMPARE(timers.constFirst().message, QStringLiteral("tea"));
@@ -252,7 +252,7 @@ private Q_SLOTS:
 
     void testFiredAlarmSurvivesRestart()
     {
-        const TimerInfo timer = engine->Create(1, QStringLiteral("bread"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("bread"));
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
         QVERIFY(engine->hasPendingAlarms());
@@ -261,7 +261,7 @@ private Q_SLOTS:
         resetEngine(); // reload from disk
 
         // The fired alarm is not active, but is still pending and replayed to the host.
-        QCOMPARE(engine->List().size(), 0);
+        QCOMPARE(engine->list().size(), 0);
         QVERIFY(engine->hasPendingAlarms());
         QSignalSpy replaySpy(engine.data(), &RemindmeEngine::timerExpired);
         engine->replayPendingAlarms();
@@ -274,31 +274,31 @@ private Q_SLOTS:
 
     void testAcknowledgingFiredAlarmClearsIt()
     {
-        const TimerInfo timer = engine->Create(1, QStringLiteral("bread"));
+        const TimerInfo timer = engine->create(1, QStringLiteral("bread"));
         fakeNow += 2 * 1000;
         engine->checkExpiredTimers();
         QVERIFY(engine->hasPendingAlarms());
 
-        QVERIFY(engine->Cancel(timer.id)); // "Dismiss"
+        QVERIFY(engine->cancel(timer.id)); // "Dismiss"
         QVERIFY(!engine->hasPendingAlarms());
 
         engine.reset();
         resetEngine(); // the acknowledgment must have persisted
         QVERIFY(!engine->hasPendingAlarms());
-        QCOMPARE(engine->List().size(), 0);
+        QCOMPARE(engine->list().size(), 0);
     }
 
     void testSnoozeActiveTimerKeepsRemainingTime()
     {
-        // A still-active timer snoozed via Snooze() must keep the time that was left,
+        // A still-active timer snoozed via snooze() must keep the time that was left,
         // adding one minute to the existing deadline instead of collapsing to now + 1 minute
         const qint64 before = fakeNow;
-        const TimerInfo timer = engine->Create(10 * 60, QStringLiteral("meeting"));
+        const TimerInfo timer = engine->create(10 * 60, QStringLiteral("meeting"));
         const qint64 originalDeadline = timer.deadline;
 
-        QVERIFY(engine->Snooze(timer.id));
+        QVERIFY(engine->snooze(timer.id));
 
-        const QList<TimerInfo> timers = engine->List();
+        const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
         QCOMPARE(timers.constFirst().id, timer.id);
         QCOMPARE(timers.constFirst().deadline, before + 10 * 60 * 1000 + Remindme::snoozeDurationMs); // 10 min left + 1 min snooze
@@ -308,14 +308,14 @@ private Q_SLOTS:
     void testExpiryEmitsSignal()
     {
         QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);
-        engine->Create(1, QStringLiteral("blip"));
+        engine->create(1, QStringLiteral("blip"));
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
 
         QCOMPARE(spy.count(), 1);
         const TimerInfo timer = spy.takeFirst().constFirst().value<TimerInfo>();
         QCOMPARE(timer.message, QStringLiteral("blip"));
-        QCOMPARE(engine->List().size(), 0); // the expired timer is no longer active
+        QCOMPARE(engine->list().size(), 0); // the expired timer is no longer active
     }
 
     void testExpiryAfterClockJump()
@@ -325,11 +325,11 @@ private Q_SLOTS:
         // notices this on its own is covered in deadlineschedulertest.cpp; here the manual
         // scheduler stands in for that wake.
         QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);
-        engine->Create(60, QStringLiteral("nap"));
+        engine->create(60, QStringLiteral("nap"));
         fakeNow += 5 * 60 * 1000; // slept past the deadline
         scheduler->fire();
         QCOMPARE(spy.count(), 1);
-        QCOMPARE(engine->List().size(), 0);
+        QCOMPARE(engine->list().size(), 0);
     }
 
     void testExpiryOrderIsById()
@@ -337,9 +337,9 @@ private Q_SLOTS:
         // QMap iteration is id-ordered, so equal-deadline alarms fire (and their dialogs stack)
         // deterministically in creation order rather than in QHash bucket order.
         QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);
-        engine->Create(1, QStringLiteral("first"));
-        engine->Create(1, QStringLiteral("second"));
-        engine->Create(1, QStringLiteral("third"));
+        engine->create(1, QStringLiteral("first"));
+        engine->create(1, QStringLiteral("second"));
+        engine->create(1, QStringLiteral("third"));
         fakeNow += 2 * 1000; // every deadline has passed at once
         engine->checkExpiredTimers();
 
