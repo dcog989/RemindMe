@@ -30,6 +30,15 @@ const QString s_cancelPrefix{QStringLiteral("cancel:")};
 // KRunner::QueryMatch::CategoryRelevance::Highest. The DBus API carries the raw int.
 constexpr int categoryRelevanceHighest = 100;
 
+// Match relevance (0..1), KRunner's own ordering within one category: higher sorts first, so the
+// actionable create/cancel results rank above the list and usage hints, and error/no-result
+// matches sink to the bottom.
+constexpr qreal relevanceCreate = 0.9;
+constexpr qreal relevanceCancel = 0.8;
+constexpr qreal relevanceList = 0.7;
+constexpr qreal relevanceUsage = 0.6;
+constexpr qreal relevanceInfo = 0.4;
+
 // Builds a match carrying the fields every reminder match shares, so a new common field only has
 // to be added here. Callers layer on any per-match properties afterwards.
 RemoteMatch makeMatch(const QString &id, const QString &text, qreal relevance)
@@ -207,7 +216,7 @@ void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &tri
 
     int index = 0;
     for (const Usage &usage : usages) {
-        RemoteMatch match = makeMatch(QStringLiteral("usage%1").arg(index++), prefix + QLatin1Char(' ') + usage.command, 0.6);
+        RemoteMatch match = makeMatch(QStringLiteral("usage%1").arg(index++), prefix + QLatin1Char(' ') + usage.command, relevanceUsage);
         match.properties.insert(QStringLiteral("subtext"), usage.description);
         matches.append(match);
     }
@@ -234,7 +243,7 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
     }
 
     // The whole term is encoded in the id so Run() can re-parse it without keeping match state.
-    RemoteMatch match = makeMatch(s_createPrefix + term, text, 0.9);
+    RemoteMatch match = makeMatch(s_createPrefix + term, text, relevanceCreate);
     match.properties.insert(QStringLiteral("multiline"), true);
     matches.append(match);
 }
@@ -250,7 +259,7 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
     for (const Remindme::TimerInfo &timer : timers) {
         // All details go in the text line so they are visible regardless of row selection state;
         // the id is included so that "rme cancel <id>" can target a specific timer.
-        RemoteMatch match = makeMatch(s_timerPrefix + QString::number(timer.id), timerText(timer), 0.7);
+        RemoteMatch match = makeMatch(s_timerPrefix + QString::number(timer.id), timerText(timer), relevanceList);
         match.properties.insert(QStringLiteral("multiline"), true);
         match.properties.insert(QStringLiteral("actions"), QStringList{QStringLiteral("cancel")});
         matches.append(match);
@@ -292,7 +301,7 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
             addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
             return;
         }
-        matches.append(makeMatch(s_cancelIdPrefix + QString::number(id), i18n("Cancel timer #%1", idString), 0.8));
+        matches.append(makeMatch(s_cancelIdPrefix + QString::number(id), i18n("Cancel timer #%1", idString), relevanceCancel));
     } else {
         // The term is a message substring; validate it matches before offering, like the id path,
         // so the result is never a no-op. Both the offer and the actual cancellation use the same
@@ -303,13 +312,13 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
         }
         // The term may be pasted markup; the match text is rendered as rich text, so escape it
         // to keep the message literal (see also the "Invalid:" text in addCreateMatch).
-        matches.append(makeMatch(s_cancelMessagePrefix + target, i18n("Cancel all timers matching \"%1\"", target.toHtmlEscaped()), 0.8));
+        matches.append(makeMatch(s_cancelMessagePrefix + target, i18n("Cancel all timers matching \"%1\"", target.toHtmlEscaped()), relevanceCancel));
     }
 }
 
 void RemindmeAdaptor::addCancelTimerMatch(RemoteMatches &matches, const Remindme::TimerInfo &timer) const
 {
-    RemoteMatch match = makeMatch(s_cancelPrefix + QString::number(timer.id), timerText(timer), 0.8);
+    RemoteMatch match = makeMatch(s_cancelPrefix + QString::number(timer.id), timerText(timer), relevanceCancel);
     match.properties.insert(QStringLiteral("subtext"), i18n("Cancel this timer"));
     match.properties.insert(QStringLiteral("multiline"), true);
     matches.append(match);
@@ -317,7 +326,7 @@ void RemindmeAdaptor::addCancelTimerMatch(RemoteMatches &matches, const Remindme
 
 void RemindmeAdaptor::addSimpleMatch(RemoteMatches &matches, const QString &text, const QString &subtext) const
 {
-    RemoteMatch match = makeMatch(QString(), text, 0.4);
+    RemoteMatch match = makeMatch(QString(), text, relevanceInfo);
     match.properties.insert(QStringLiteral("subtext"), subtext);
     matches.append(match);
 }
