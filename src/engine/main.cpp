@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     // at every login. The initial call reconciles a leftover enabled entry after a hard shutdown
     // that left no timer behind.
     auto autostart = std::make_unique<RemindmeAutostart>();
-    autostart->setActive(!engine.List().isEmpty() || engine.hasPendingAlarms());
+    autostart->setActive(!engine.isEmpty() || engine.hasPendingAlarms());
     QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &engine, [&autostart](int timerCount) {
         autostart->setActive(timerCount > 0);
     });
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
     // Drop the service name first so a call racing the exit is routed to a freshly activated
     // helper instead of this process's torn-down object tree.
     const auto tryQuit = [&]() {
-        if (engine.List().isEmpty() && openDialogCount == 0 && pendingSoundCount == 0) {
+        if (engine.isEmpty() && openDialogCount == 0 && pendingSoundCount == 0) {
             QDBusConnection::sessionBus().unregisterService(s_serviceName);
             app.quit();
         }

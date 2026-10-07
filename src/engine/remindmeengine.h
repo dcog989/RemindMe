@@ -67,6 +67,10 @@ public:
 
     Remindme::TimerInfo Create(qint32 durationSeconds, const QString &message);
     QList<Remindme::TimerInfo> List();
+    // Whether any active timer exists / whether the active timer with id exists. Avoids the value
+    // copy List() makes when the caller only needs a membership test.
+    bool isEmpty() const;
+    bool contains(qint32 id) const;
     bool Cancel(qint32 id);
     bool CancelByMessage(const QString &message);
     // Active and fired timers whose message contains term (case-insensitive substring). Shared by

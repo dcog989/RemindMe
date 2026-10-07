@@ -81,6 +81,12 @@ private Q_SLOTS:
         QVERIFY(hasId(timers, 2));
         QCOMPARE(timers.at(0).id, 1); // sorted by id, as the D-Bus interface documents
         QCOMPARE(timers.at(1).id, 2);
+
+        // Membership helpers used by the host and runner avoid the List() copy
+        QVERIFY(!engine->isEmpty());
+        QVERIFY(engine->contains(1));
+        QVERIFY(engine->contains(2));
+        QVERIFY(!engine->contains(99));
     }
 
     void testCreateRejectsInvalidDurations()

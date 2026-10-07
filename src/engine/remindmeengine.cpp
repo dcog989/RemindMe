@@ -122,6 +122,16 @@ QList<Remindme::TimerInfo> RemindmeEngine::List()
     return m_timers.values();
 }
 
+bool RemindmeEngine::isEmpty() const
+{
+    return m_timers.isEmpty();
+}
+
+bool RemindmeEngine::contains(qint32 id) const
+{
+    return m_timers.contains(id);
+}
+
 bool RemindmeEngine::Cancel(qint32 id)
 {
     const bool removedActive = m_timers.remove(id) > 0;

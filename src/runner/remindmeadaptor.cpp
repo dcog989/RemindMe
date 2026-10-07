@@ -280,15 +280,7 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     if (isNumber || idMarker) {
         // Validate the id refers to an active timer, so a stale or mistyped id is not
         // silently accepted as a no-op cancellation.
-        bool exists = false;
-        const QList<Remindme::TimerInfo> timers = m_engine->List();
-        for (const Remindme::TimerInfo &timer : timers) {
-            if (timer.id == id) {
-                exists = true;
-                break;
-            }
-        }
-        if (!exists) {
+        if (!m_engine->contains(id)) {
             addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
             return;
         }
