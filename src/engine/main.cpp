@@ -135,11 +135,8 @@ int main(int argc, char **argv)
     // One-shot fallback for the single case that emits no count change: an activation that
     // only queried an already-empty state. Give any pending call time to arrive, then exit
     // if the service is still idle instead of lingering as a permanent background process.
-    QTimer::singleShot(idleQuitFallbackMs, &app, [&engine, &openDialogCount]() {
-        if (engine.List().isEmpty() && openDialogCount == 0) {
-            QDBusConnection::sessionBus().unregisterService(s_serviceName);
-            QCoreApplication::quit();
-        }
+    QTimer::singleShot(idleQuitFallbackMs, &app, [&tryQuit]() {
+        tryQuit();
     });
 
     return app.exec();
