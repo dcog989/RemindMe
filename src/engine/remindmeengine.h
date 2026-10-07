@@ -10,9 +10,8 @@
 
 namespace Remindme
 {
-// How long a snooze extends a timer by. This is also the duration named in the
-// "Snooze +1 minute" button/action labels in remindmealarmdialog.cpp; keep that label in sync
-// if this value ever changes.
+// How long a snooze extends a timer by; the alarm dialog derives its "Snooze +N minute(s)" label
+// from this value.
 constexpr qint64 snoozeDurationMs = 60 * 1000;
 }
 

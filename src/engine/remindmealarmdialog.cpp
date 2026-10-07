@@ -88,7 +88,8 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     }
 
     QHBoxLayout *buttons = new QHBoxLayout;
-    QPushButton *snoozeButton = new QPushButton(i18n("Snooze +1 minute"), this);
+    const int snoozeMinutes = Remindme::snoozeDurationMs / (60 * 1000);
+    QPushButton *snoozeButton = new QPushButton(i18np("Snooze +%1 minute", "Snooze +%1 minutes", snoozeMinutes), this);
     // For a still-active timer the destructive action is cancelling it, so name it accordingly
     // rather than "Dismiss" (which, for the expired alarm, only acknowledges the alarm).
     QPushButton *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
