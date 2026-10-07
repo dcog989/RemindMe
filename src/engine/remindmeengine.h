@@ -25,12 +25,10 @@ public:
     // timerfd) and parents it to itself.
     explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, DeadlineScheduler *scheduler = nullptr);
 
-    // Re-arms a timer that has already expired (and so moved to m_firedAlarms). The
-    // snooze(id) method handles the still-active case; both funnel into snoozeTimer().
-    void rearmExpiredTimer(const Remindme::TimerInfo &timer);
-
-    // Snoozes a still-active timer.
-    bool snooze(qint32 id);
+    // Snoozes a timer, extending its deadline by Remindme::snoozeDurationMs. A still-active timer
+    // keeps the time that was left (its live entry is preferred); an expired alarm is dropped from
+    // the fired set and re-armed from now. Returns false if the id is neither active nor fired.
+    bool snooze(const Remindme::TimerInfo &timer);
 
     // Moves timers expired as of nowMs() to the fired set and emits timerExpired() for each.
     // Called by the scheduler; public so unit tests can drive expiry deterministically without
@@ -78,9 +76,7 @@ private:
     // Extends deadline by Remindme::snoozeDurationMs, anchored to now if it has already passed
     // (so snoozing an expired timer doesn't leave it expired again immediately).
     qint64 extendedDeadline(qint64 deadline) const;
-    // Extends timer's deadline and (re-)inserts it into m_timers. The same operation whether
-    // snoozing a still-active timer (snooze(id) keeps the time that was left) or re-arming one
-    // that already expired and was moved to m_firedAlarms (rearmExpiredTimer()).
+    // Extends timer's deadline and (re-)inserts it into m_timers; shared by both snooze() paths.
     void snoozeTimer(Remindme::TimerInfo timer);
 
     // Keyed by id so iteration is id-ordered: expiry alarms fire (and their dialogs stack) in

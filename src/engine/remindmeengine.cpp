@@ -269,16 +269,22 @@ void RemindmeEngine::checkExpiredTimers()
     }
 }
 
-bool RemindmeEngine::snooze(qint32 id)
+bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer)
 {
-    const auto it = m_timers.constFind(id);
-    if (it == m_timers.cend()) {
-        return false;
+    // Prefer the live timer so a still-active timer keeps the time that was left (extending rather
+    // than restarting is handled by snoozeTimer()). Otherwise the timer is a fired alarm: drop it
+    // from that set before snoozeTimer() re-inserts it into m_timers, since an id must live in
+    // exactly one set.
+    const auto it = m_timers.constFind(timer.id);
+    if (it != m_timers.cend()) {
+        snoozeTimer(it.value());
+        return true;
     }
-    // Extending (rather than restarting) the deadline is handled by snoozeTimer(), which keeps
-    // the time that was left on a still-active timer instead of collapsing it to "now + snoozeDurationMs"
-    snoozeTimer(it.value());
-    return true;
+    if (m_firedAlarms.remove(timer.id) > 0) {
+        snoozeTimer(timer);
+        return true;
+    }
+    return false;
 }
 
 void RemindmeEngine::show(qint32 id)
@@ -303,13 +309,4 @@ void RemindmeEngine::replayPendingAlarms()
     for (const Remindme::TimerInfo &timer : pending) {
         Q_EMIT timerExpired(timer);
     }
-}
-
-void RemindmeEngine::rearmExpiredTimer(const Remindme::TimerInfo &timer)
-{
-    // checkExpiredTimers() moved the timer to m_firedAlarms; drop it from there so snoozeTimer(),
-    // which re-inserts it into m_timers under its original id, does not leave it in both sets.
-    // Timer ids are never reused within this process, so this cannot collide with an active timer.
-    m_firedAlarms.remove(timer.id);
-    snoozeTimer(timer);
 }

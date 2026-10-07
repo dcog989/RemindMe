@@ -38,12 +38,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, bool expire
     // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
     auto *dialog = new RemindmeAlarmDialog(timer, expired, m_engine.nowMs());
     ++m_openDialogCount;
-    connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer, expired]() {
-        if (expired) {
-            m_engine.rearmExpiredTimer(timer);
-        } else {
-            m_engine.snooze(timer.id);
-        }
+    connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer]() {
+        m_engine.snooze(timer);
     });
     // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; cancel handles
     // both. Closing the window without a button is a no-op.

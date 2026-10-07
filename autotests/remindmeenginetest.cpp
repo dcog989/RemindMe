@@ -240,7 +240,7 @@ private Q_SLOTS:
         QCOMPARE(engine->list().size(), 0); // expired and no longer active
         QVERIFY(engine->hasPendingAlarms()); // but awaiting acknowledgment
 
-        engine->rearmExpiredTimer(timer);
+        QVERIFY(engine->snooze(timer));
 
         const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
@@ -296,7 +296,7 @@ private Q_SLOTS:
         const TimerInfo timer = engine->create(10 * 60, QStringLiteral("meeting"));
         const qint64 originalDeadline = timer.deadline;
 
-        QVERIFY(engine->snooze(timer.id));
+        QVERIFY(engine->snooze(timer));
 
         const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
