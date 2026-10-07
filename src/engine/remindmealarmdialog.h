@@ -2,6 +2,8 @@
 
 #include <QDialog>
 
+#include <cstdint>
+
 #include "timerinfo.h"
 
 namespace Remindme
@@ -12,7 +14,7 @@ constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
 
 // Which alarm a dialog or presenter is handling: an expiry alarm (looping sound, "Dismiss") or a
 // manual reminder for a still-active timer (no sound, "Cancel timer").
-enum class AlarmKind {
+enum class AlarmKind : std::uint8_t {
     Expiry,
     Reminder,
 };

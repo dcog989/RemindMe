@@ -68,9 +68,19 @@ format-check:
     fi
     clang-format --dry-run --Werror $cpp
 
-# Run clang-tidy over the configured sources (requires `just configure`)
+# Run clang-tidy over project sources (configures and builds first: tidy needs a current
+# compile DB and the generated .moc files)
 tidy preset="user" *args:
-    run-clang-tidy -p build/{{preset}} {{args}}
+    #!/usr/bin/env bash
+    set -euo pipefail
+    just configure {{preset}}
+    just build {{preset}}
+    # Qt passes -mno-direct-extern-access to GCC; clang-tidy's clang rejects it, so strip it.
+    # Skip the *_autogen TUs: their generated moc code trips checks that do not apply to our source.
+    run-clang-tidy -p build/{{preset}} \
+        -removed-arg=-mno-direct-extern-access \
+        '^(?!.*(_autogen|mocs_compilation)).*\.(cpp|cc|cxx)$' \
+        {{args}}
 
 # Run every available linter; missing tools and not-yet-added configs are skipped
 lint:

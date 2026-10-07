@@ -112,7 +112,7 @@ class RemindmeIntegrationTest : public KRunner::AbstractRunnerTest
 private Q_SLOTS:
     void initTestCase()
     {
-        stateDir.reset(new QTemporaryDir);
+        stateDir = std::make_unique<QTemporaryDir>();
         QVERIFY(stateDir->isValid());
 
         // Run on a private session bus so the test neither depends on nor interferes with the

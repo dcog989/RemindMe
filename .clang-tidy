@@ -8,6 +8,7 @@ Checks: >
   clang-analyzer-*,
   performance-*,
   portability-*,
+  -portability-avoid-pragma-once,
   modernize-*,
   -modernize-use-trailing-return-type,
   -modernize-use-nodiscard,

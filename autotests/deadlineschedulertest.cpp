@@ -26,7 +26,7 @@ private Q_SLOTS:
 
     void testFiresWhenDeadlineReached()
     {
-        fakeNow = qint64(1) << 40;
+        fakeNow = static_cast<qint64>(1ULL << 40U);
         QTimerDeadlineScheduler scheduler([this]() {
             return fakeNow;
         });
@@ -43,7 +43,7 @@ private Q_SLOTS:
 
     void testDisarmStopsWaking()
     {
-        fakeNow = qint64(1) << 40;
+        fakeNow = static_cast<qint64>(1ULL << 40U);
         QTimerDeadlineScheduler scheduler([this]() {
             return fakeNow;
         });

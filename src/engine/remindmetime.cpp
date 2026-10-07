@@ -26,7 +26,7 @@ namespace
 std::optional<qint64> parseNumberPart(const QString &numberPart, qint64 multiplier)
 {
     if (const std::optional<int> number = parseLocaleInt(numberPart)) {
-        return qint64(*number) * multiplier;
+        return static_cast<qint64>(*number) * multiplier;
     }
     const QLocale locale;
     const QString decimalPoint = locale.decimalPoint();

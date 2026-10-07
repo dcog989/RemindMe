@@ -58,6 +58,7 @@ inline const QDBusArgument &operator>>(const QDBusArgument &argument, RemoteMatc
     argument >> match.relevance;
     argument >> match.properties;
     argument.endStructure();
+    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): Qt's D-Bus operator>> signature.
     return argument;
 }
 
@@ -78,6 +79,7 @@ inline const QDBusArgument &operator>>(const QDBusArgument &argument, RemoteActi
     argument >> action.text;
     argument >> action.iconName;
     argument.endStructure();
+    // NOLINTNEXTLINE(bugprone-return-const-ref-from-parameter): Qt's D-Bus operator>> signature.
     return argument;
 }
 

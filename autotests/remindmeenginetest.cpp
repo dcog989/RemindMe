@@ -191,12 +191,12 @@ private Q_SLOTS:
     {
         // Simulate a timer that expired while the helper process was stopped. The injected
         // clock is anchored to a large base so the "past" deadline stays a positive value.
-        fakeNow = qint64(1) << 40;
+        fakeNow = static_cast<qint64>(1ULL << 40U);
         const qint64 past = fakeNow - 60 * 1000;
         QFile file(stateFilePath());
         QVERIFY(file.open(QIODevice::WriteOnly));
         file.write(QJsonDocument(QJsonArray{QJsonObject{{QStringLiteral("id"), 7},
-                                                        {QStringLiteral("deadline"), double(past)},
+                                                        {QStringLiteral("deadline"), static_cast<double>(past)},
                                                         {QStringLiteral("message"), QStringLiteral("missed")}}})
                        .toJson());
         file.close();
@@ -266,7 +266,7 @@ private Q_SLOTS:
         QSignalSpy replaySpy(engine.data(), &RemindmeEngine::timerExpired);
         engine->replayPendingAlarms();
         QCOMPARE(replaySpy.count(), 1);
-        const TimerInfo replayed = replaySpy.constFirst().constFirst().value<TimerInfo>();
+        const auto replayed = replaySpy.constFirst().constFirst().value<TimerInfo>();
         QCOMPARE(replayed.id, timer.id);
         QCOMPARE(replayed.message, QStringLiteral("bread"));
         QCOMPARE(replayed.deadline, timer.deadline);
@@ -313,7 +313,7 @@ private Q_SLOTS:
         engine->checkExpiredTimers();
 
         QCOMPARE(spy.count(), 1);
-        const TimerInfo timer = spy.takeFirst().constFirst().value<TimerInfo>();
+        const auto timer = spy.takeFirst().constFirst().value<TimerInfo>();
         QCOMPARE(timer.message, QStringLiteral("blip"));
         QCOMPARE(engine->list().size(), 0); // the expired timer is no longer active
     }

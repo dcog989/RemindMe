@@ -44,7 +44,7 @@ std::optional<Remindme::TimerInfo> RemindmeEngine::create(qint32 durationSeconds
     }
     Remindme::TimerInfo timer;
     timer.id = m_nextId++;
-    timer.deadline = nowMs() + qint64(durationSeconds) * 1000;
+    timer.deadline = nowMs() + static_cast<qint64>(durationSeconds) * 1000;
     timer.message = message;
     m_timers.insert(timer.id, timer);
     commitTimers();
@@ -114,7 +114,7 @@ QList<Remindme::TimerInfo> RemindmeEngine::findTimersByMessage(const QString &te
             matches.append(timer);
         }
     }
-    std::sort(matches.begin(), matches.end(), [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
+    std::ranges::sort(matches, [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
         return a.id < b.id;
     });
     return matches;
@@ -149,7 +149,7 @@ void RemindmeEngine::loadFromDisk()
     }
 
     const QJsonArray array = doc.array();
-    for (const QJsonValue &value : array) {
+    for (const auto &value : array) {
         const QJsonObject object = value.toObject();
         Remindme::TimerInfo timer;
         timer.id = object.value(QStringLiteral("id")).toInt();

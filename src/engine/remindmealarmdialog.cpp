@@ -13,6 +13,7 @@
 
 #include "remindmealarmnotification.h"
 #include "remindmealarmsound.h"
+#include "remindmeengine.h"
 
 namespace
 {
@@ -56,11 +57,11 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     setAttribute(Qt::WA_DeleteOnClose);
 
     const bool isExpiry = kind == Remindme::AlarmKind::Expiry;
-    QVBoxLayout *layout = new QVBoxLayout(this);
+    auto *layout = new QVBoxLayout(this);
     if (isExpiry) {
         setWindowTitle(Remindme::alarmTitle());
         if (!timer.message.isEmpty()) {
-            QLabel *messageLabel = new QLabel(timer.message, this);
+            auto *messageLabel = new QLabel(timer.message, this);
             messageLabel->setWordWrap(true);
             layout->addWidget(messageLabel);
         }
@@ -69,7 +70,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
         // for one that fired on time.
         const QString overdue = overdueText(timer.deadline, nowMs);
         if (!overdue.isEmpty()) {
-            QLabel *overdueLabel = new QLabel(overdue, this);
+            auto *overdueLabel = new QLabel(overdue, this);
             overdueLabel->setWordWrap(true);
             layout->addWidget(overdueLabel);
         }
@@ -78,21 +79,21 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
         // window title; show them as body text so the dialog is actually informative.
         setWindowTitle(i18n("Reminder"));
         if (!timer.message.isEmpty()) {
-            QLabel *messageLabel = new QLabel(timer.message, this);
+            auto *messageLabel = new QLabel(timer.message, this);
             messageLabel->setWordWrap(true);
             layout->addWidget(messageLabel);
         }
-        QLabel *dueLabel = new QLabel(i18n("Due %1.", formatDue(QDateTime::fromMSecsSinceEpoch(timer.deadline))), this);
+        auto *dueLabel = new QLabel(i18n("Due %1.", formatDue(QDateTime::fromMSecsSinceEpoch(timer.deadline))), this);
         dueLabel->setWordWrap(true);
         layout->addWidget(dueLabel);
     }
 
-    QHBoxLayout *buttons = new QHBoxLayout;
+    auto *buttons = new QHBoxLayout;
     const int snoozeMinutes = Remindme::snoozeDurationMs / (60 * 1000);
-    QPushButton *snoozeButton = new QPushButton(i18np("Snooze +%1 minute", "Snooze +%1 minutes", snoozeMinutes), this);
+    auto *snoozeButton = new QPushButton(i18np("Snooze +%1 minute", "Snooze +%1 minutes", snoozeMinutes), this);
     // For a still-active timer the destructive action is cancelling it, so name it accordingly
     // rather than "Dismiss" (which, for the expired alarm, only acknowledges the alarm).
-    QPushButton *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
+    auto *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
     buttons->addWidget(snoozeButton);
     buttons->addWidget(dismissButton);
     layout->addLayout(buttons);

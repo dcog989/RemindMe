@@ -42,14 +42,14 @@ Trigger words: `remindme` or `rme`.
 
 ### Development
 
-- Configure, build and test: `just ci` (or `cmake --workflow --preset user`).
-- Test only: `just test` (or `ctest --preset user`).
-- Format C++ and shell sources: `just format`; verify with `just format-check`.
-- Lint everything available: `just lint` (typos, shellcheck, yamllint,
-  editorconfig-checker, clang-format). `just doctor` lists missing tools.
-- Static analysis: `just tidy` (`clang-tidy` over the configured build).
-- Rebuild, reinstall and relaunch KRunner: `just reload`.
-- Package for the KDE Store: `just package`.
+- `just ci` - configure, build and test
+- `just test` - test only
+- `just format` — clang-format + shfmt in place
+- `just format-check` — fails if C++ isn't formatted
+- `just lint` — typos, shellcheck, yamllint, editorconfig-checker, clang-format (skips missing tools)
+- `just tidy` — clang-tidy over the configured preset (configures and builds first)
+- `just reload` — rebuild, reinstall and relaunch KRunner
+- `just package` — package for the KDE Store
 
 ### Install from source
 

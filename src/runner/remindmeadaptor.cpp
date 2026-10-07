@@ -136,7 +136,7 @@ RemoteMatches RemindmeAdaptor::Match(const QString &query)
 
 RemoteActions RemindmeAdaptor::Actions()
 {
-    return {RemoteAction{QStringLiteral("cancel"), i18n("Cancel timer"), QStringLiteral("dialog-close")}};
+    return {RemoteAction{.id = QStringLiteral("cancel"), .text = i18n("Cancel timer"), .iconName = QStringLiteral("dialog-close")}};
 }
 
 void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
@@ -197,10 +197,10 @@ void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &tri
         QString description;
     };
     const QList<Usage> usages = {
-        {QStringLiteral("<duration> [<message>]"), i18n("Create and manage timers.")},
-        {QStringLiteral("list"), i18n("List timers")},
-        {QStringLiteral("cancel <id>"), i18n("Cancel timers with given id")},
-        {QStringLiteral("cancel <message>"), i18n("Cancel all timers matching given message")},
+        {.command = QStringLiteral("<duration> [<message>]"), .description = i18n("Create and manage timers.")},
+        {.command = QStringLiteral("list"), .description = i18n("List timers")},
+        {.command = QStringLiteral("cancel <id>"), .description = i18n("Cancel timers with given id")},
+        {.command = QStringLiteral("cancel <message>"), .description = i18n("Cancel all timers matching given message")},
     };
 
     // Echo the canonical spelling of whichever trigger alias the user typed.
@@ -231,8 +231,8 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
     const QDateTime deadline = QDateTime::currentDateTime().addSecs(duration.seconds);
     // Hide seconds only when hours are displayed, folding them into the minutes (nearest);
     // formatSpelloutDuration otherwise silently drops them. Below an hour it shows them.
-    const qint64 durationMs = qint64(duration.seconds) * 1000;
-    const QString durationText = duration.seconds >= 3600 ? KFormat().formatSpelloutDuration(qint64((duration.seconds + 30) / 60) * 60 * 1000)
+    const qint64 durationMs = static_cast<qint64>(duration.seconds) * 1000;
+    const QString durationText = duration.seconds >= 3600 ? KFormat().formatSpelloutDuration(static_cast<qint64>((duration.seconds + 30) / 60) * 60 * 1000)
                                                           : KFormat().formatSpelloutDuration(durationMs);
     QString text = i18n("Set timer for %1", durationText).toHtmlEscaped();
     text += QStringLiteral("<br>") + i18n("Reminder %1", formatReminderTime(deadline, false)).toHtmlEscaped();

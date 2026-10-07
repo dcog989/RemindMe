@@ -43,8 +43,8 @@ void TimerfdDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadlin
     if (nextDeadlineMs.has_value()) {
         // An absolute time is what makes a past deadline (e.g. crossed while suspended) fire
         // immediately on resume; a zero it_value disarms.
-        ts.it_value.tv_sec = time_t(*nextDeadlineMs / 1000);
-        ts.it_value.tv_nsec = long(*nextDeadlineMs % 1000) * 1000000L;
+        ts.it_value.tv_sec = static_cast<time_t>(*nextDeadlineMs / 1000);
+        ts.it_value.tv_nsec = static_cast<long>(*nextDeadlineMs % 1000) * 1000000L;
     }
     if (timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &ts, nullptr) != 0) {
         qWarning() << "Could not arm timerfd, errno" << errno;
