@@ -66,6 +66,10 @@ public:
     QList<Remindme::TimerInfo> List();
     bool Cancel(qint32 id);
     bool CancelByMessage(const QString &message);
+    // Active and fired timers whose message contains term (case-insensitive substring). Shared by
+    // the "cancel by message" UI (to validate and describe the match) and CancelByMessage (to
+    // remove exactly that set), so the offer and the action cannot drift apart.
+    QList<Remindme::TimerInfo> findTimersByMessage(const QString &term) const;
     void Show(qint32 id);
 
 Q_SIGNALS:

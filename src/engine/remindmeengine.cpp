@@ -131,27 +131,43 @@ bool RemindmeEngine::Cancel(qint32 id)
 
 bool RemindmeEngine::CancelByMessage(const QString &message)
 {
-    bool removed = false;
-    for (auto it = m_timers.begin(); it != m_timers.end();) {
-        if (it.value().message == message) {
-            it = m_timers.erase(it);
-            removed = true;
-        } else {
-            ++it;
+    const QList<Remindme::TimerInfo> matches = findTimersByMessage(message);
+    if (matches.isEmpty()) {
+        return false;
+    }
+    for (const Remindme::TimerInfo &timer : matches) {
+        // An id lives in exactly one set, so removing from both is safe and also acknowledges a
+        // fired alarm whose message matches.
+        m_timers.remove(timer.id);
+        m_firedAlarms.remove(timer.id);
+    }
+    commitTimers();
+    return true;
+}
+
+QList<Remindme::TimerInfo> RemindmeEngine::findTimersByMessage(const QString &term) const
+{
+    QList<Remindme::TimerInfo> matches;
+    if (term.isEmpty()) {
+        return matches;
+    }
+    const auto messageMatches = [&term](const Remindme::TimerInfo &timer) {
+        return timer.message.contains(term, Qt::CaseInsensitive);
+    };
+    for (const Remindme::TimerInfo &timer : std::as_const(m_timers)) {
+        if (messageMatches(timer)) {
+            matches.append(timer);
         }
     }
-    for (auto it = m_firedAlarms.begin(); it != m_firedAlarms.end();) {
-        if (it.value().message == message) {
-            it = m_firedAlarms.erase(it);
-            removed = true;
-        } else {
-            ++it;
+    for (const Remindme::TimerInfo &timer : std::as_const(m_firedAlarms)) {
+        if (messageMatches(timer)) {
+            matches.append(timer);
         }
     }
-    if (removed) {
-        commitTimers();
-    }
-    return removed;
+    std::sort(matches.begin(), matches.end(), [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
+        return a.id < b.id;
+    });
+    return matches;
 }
 
 void RemindmeEngine::loadFromDisk()

@@ -323,9 +323,19 @@ private Q_SLOTS:
         QCOMPARE(matches.size(), 1);
         QCOMPARE(matches.constFirst().text(), QStringLiteral("Cancel all timers matching \"meeting\""));
 
+        // Matching is a case-insensitive substring, so a partial term still matches
+        const QList<QueryMatch> partial = query(QStringLiteral("rme cancel MEET"));
+        QCOMPARE(partial.size(), 1);
+        QCOMPARE(partial.constFirst().text(), QStringLiteral("Cancel all timers matching \"MEET\""));
+
         manager->run(matches.constFirst());
         QTRY_COMPARE(activeTimerCount(), 1);
         QVERIFY(listTimers().constFirst().text().contains(QLatin1String("lunch")));
+
+        // A term that matches no timer is reported instead of offering a no-op cancellation
+        const QList<QueryMatch> noMatch = query(QStringLiteral("rme cancel nomatch"));
+        QCOMPARE(noMatch.size(), 1);
+        QVERIFY(noMatch.constFirst().text().contains(QLatin1String("No timer matching")));
 
         // Markup in the message term is escaped for the rich-text rendered match text
         const QList<QueryMatch> markupMatches = query(QStringLiteral("rme cancel <b>meeting</b>"));
@@ -340,6 +350,11 @@ private Q_SLOTS:
         QCOMPARE(missing.size(), 1);
         QVERIFY(missing.constFirst().text().contains(QLatin1String("No timer with id 5")));
 
+        // "#" marks an id, so a non-numeric "#foo" is a missing id rather than a message search
+        const QList<QueryMatch> hashText = query(QStringLiteral("rme cancel #foo"));
+        QCOMPARE(hashText.size(), 1);
+        QVERIFY(hashText.constFirst().text().contains(QLatin1String("No timer with id foo")));
+
         // An existing id still offers cancellation, marked with "#"
         const int id = createTimer(QStringLiteral("10:00"), QStringLiteral("5"));
         QVERIFY(id >= 1);
@@ -348,7 +363,12 @@ private Q_SLOTS:
         QCOMPARE(matches.constFirst().text(), QStringLiteral("Cancel timer #%1").arg(id));
         QVERIFY(matches.constFirst().subtext().isEmpty());
 
-        // A non-numeric term keeps the message interpretation in the text line
+        // A non-numeric term is read as a message and must match a timer to be offered
+        const QList<QueryMatch> noMatch = query(QStringLiteral("rme cancel 5min"));
+        QCOMPARE(noMatch.size(), 1);
+        QVERIFY(noMatch.constFirst().text().contains(QLatin1String("No timer matching")));
+
+        QVERIFY(createTimer(QStringLiteral("10:00"), QStringLiteral("5min left")) >= 1);
         const QList<QueryMatch> messageMatch = query(QStringLiteral("rme cancel 5min"));
         QCOMPARE(messageMatch.size(), 1);
         QCOMPARE(messageMatch.constFirst().text(), QStringLiteral("Cancel all timers matching \"5min\""));

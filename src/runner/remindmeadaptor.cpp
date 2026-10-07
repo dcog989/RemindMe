@@ -260,8 +260,11 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     }
 
     bool isNumber = false;
-    // Accept a leading "#" as an id marker, matching how ids are shown in "rme list"
-    const QString idString = target.startsWith(QLatin1Char('#')) ? target.mid(1) : target;
+    // Accept a leading "#" as an id marker, matching how ids are shown in "rme list". The marker
+    // means the term is an id, so a non-numeric "#foo" is reported as a missing id rather than
+    // matched as message text with the "#" silently stripped.
+    const bool idMarker = target.startsWith(QLatin1Char('#'));
+    const QString idString = idMarker ? target.mid(1) : target;
     // Parse through the locale, matching the duration parser, so the native digits a user typed
     // for the duration can also address its id. RejectGroupSeparator keeps a message such as
     // "1,5" or "1.5" from silently reading as the id 15 under a locale that groups either way.
@@ -269,7 +272,7 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     idLocale.setNumberOptions(QLocale::RejectGroupSeparator);
     const int id = idLocale.toInt(idString, &isNumber);
 
-    if (isNumber) {
+    if (isNumber || idMarker) {
         // Validate the id refers to an active timer, so a stale or mistyped id is not
         // silently accepted as a no-op cancellation.
         bool exists = false;
@@ -281,14 +284,21 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
             }
         }
         if (!exists) {
-            addSimpleMatch(matches, i18n("No timer with id %1", id), i18n("Use rme list to see timers"));
+            addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
             return;
         }
         matches.append(makeMatch(s_cancelIdPrefix + QString::number(id), i18n("Cancel timer #%1", idString), 0.8));
     } else {
+        // The term is a message substring; validate it matches before offering, like the id path,
+        // so the result is never a no-op. Both the offer and the actual cancellation use the same
+        // case-insensitive match through the engine.
+        if (m_engine->findTimersByMessage(target).isEmpty()) {
+            addSimpleMatch(matches, i18n("No timer matching \"%1\"", target.toHtmlEscaped()), i18n("Use rme list to see timers"));
+            return;
+        }
         // The term may be pasted markup; the match text is rendered as rich text, so escape it
         // to keep the message literal (see also the "Invalid:" text in addCreateMatch).
-        matches.append(makeMatch(s_cancelMessagePrefix + idString, i18n("Cancel all timers matching \"%1\"", idString.toHtmlEscaped()), 0.8));
+        matches.append(makeMatch(s_cancelMessagePrefix + target, i18n("Cancel all timers matching \"%1\"", target.toHtmlEscaped()), 0.8));
     }
 }
 

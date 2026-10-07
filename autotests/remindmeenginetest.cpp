@@ -121,6 +121,12 @@ private Q_SLOTS:
 
         QVERIFY(!engine->CancelByMessage(QStringLiteral("meeting"))); // none left
         QVERIFY(!engine->CancelByMessage(QStringLiteral("none")));
+
+        // Matching is a case-insensitive substring, not exact equality
+        engine->Create(60, QStringLiteral("Call Mom"));
+        QVERIFY(engine->CancelByMessage(QStringLiteral("call")));
+        QCOMPARE(engine->List().size(), 1); // only "lunch" remains
+        QCOMPARE(engine->List().constFirst().message, QStringLiteral("lunch"));
     }
 
     void testPersistenceAcrossRestart()
