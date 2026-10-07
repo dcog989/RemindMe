@@ -219,6 +219,13 @@ private Q_SLOTS:
         }
         QVERIFY(sawCreate); // the create syntax is shown, preferring the "rme" example
         QVERIFY(sawList);
+
+        // The long alias must get the same hints in its own spelling, not fall back to "rme"
+        const QList<QueryMatch> longMatches = query(QStringLiteral("remindme"));
+        QVERIFY(longMatches.size() >= 2);
+        for (const QueryMatch &match : longMatches) {
+            QVERIFY(match.text().startsWith(QLatin1String("remindme ")));
+        }
     }
 
     void testInvalidDurationMatch()

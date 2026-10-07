@@ -146,31 +146,33 @@ QVariantMap RemindmeAdaptor::Config()
 
 void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &trigger) const
 {
+    // Command forms after the trigger word. The trigger is prepended per hint so both aliases
+    // ("remindme" and "rme") see the syntax in their own spelling.
     struct Usage {
-        QStringList examples;
+        QString command;
         QString description;
     };
     const QList<Usage> usages = {
-        {{QStringLiteral("remindme <duration> [<message>]"), QStringLiteral("rme <duration> [<message>]")}, i18n("Create and manage timers.")},
-        {{QStringLiteral("rme list")}, i18n("List timers")},
-        {{QStringLiteral("rme cancel <id>")}, i18n("Cancel timers with given id")},
-        {{QStringLiteral("rme cancel <message>")}, i18n("Cancel all timers matching given message")},
+        {QStringLiteral("<duration> [<message>]"), i18n("Create and manage timers.")},
+        {QStringLiteral("list"), i18n("List timers")},
+        {QStringLiteral("cancel <id>"), i18n("Cancel timers with given id")},
+        {QStringLiteral("cancel <message>"), i18n("Cancel all timers matching given message")},
     };
+
+    // Echo the canonical spelling of whichever trigger alias the user typed.
+    QString prefix = trigger;
+    for (const QString &candidate : s_triggerWords) {
+        if (candidate.compare(trigger, Qt::CaseInsensitive) == 0) {
+            prefix = candidate;
+            break;
+        }
+    }
 
     int index = 0;
     for (const Usage &usage : usages) {
-        // Prefer the example that matches the trigger word the user typed ("rme" vs "remindme")
-        QString example = usage.examples.constFirst();
-        for (const QString &candidate : usage.examples) {
-            if (candidate.compare(trigger, Qt::CaseInsensitive) == 0 || candidate.startsWith(trigger + QLatin1Char(' '), Qt::CaseInsensitive)) {
-                example = candidate;
-                break;
-            }
-        }
-
         RemoteMatch match;
         match.id = QStringLiteral("usage%1").arg(index++);
-        match.text = example;
+        match.text = prefix + QLatin1Char(' ') + usage.command;
         match.iconName = QStringLiteral("kronometer");
         match.categoryRelevance = categoryRelevanceHighest;
         match.relevance = 0.6;
