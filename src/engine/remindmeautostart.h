@@ -16,6 +16,11 @@ public:
 
     void setActive(bool active);
 
+    // Formats a path as a single Exec argument per the Desktop Entry spec: double-quoted, with
+    // the characters special inside quotes backslash-escaped and '%' doubled (field-code escape;
+    // a literal '%' is not allowed inside a quoted argument). Public so it can be unit-tested.
+    static QString execArgument(const QString &path);
+
 private:
     QString m_autostartDir;
     QString m_entryPath;

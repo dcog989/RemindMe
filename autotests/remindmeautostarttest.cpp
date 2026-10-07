@@ -48,7 +48,38 @@ private Q_SLOTS:
         QCOMPARE(hidden(true), false); // enabled
         KDesktopFile file(entryPath());
         QCOMPARE(file.desktopGroup().readEntry("Type"), QStringLiteral("Application"));
-        QVERIFY(!file.desktopGroup().readEntry("Exec").isEmpty());
+        // The Exec argument is double-quoted per the Desktop Entry spec, not single-quoted
+        QCOMPARE(file.desktopGroup().readEntry("Exec"), RemindmeAutostart::execArgument(QCoreApplication::applicationFilePath()));
+    }
+
+    void testExecArgumentQuoting()
+    {
+        QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("/usr/bin/krunner-remindme")), QStringLiteral("\"/usr/bin/krunner-remindme\""));
+        QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("/opt/with space/bin")), QStringLiteral("\"/opt/with space/bin\""));
+        // '%' introduces a field code and must be doubled even inside a quoted argument
+        QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("/opt/100%")), QStringLiteral("\"/opt/100%%\""));
+        // Double quotes and backslashes are escaped for the spec's quoted form
+        QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("a\"b\\c")), QStringLiteral("\"a\\\"b\\\\c\""));
+    }
+
+    void testStaleExecIsRewritten()
+    {
+        // An entry left by an install under another prefix must be updated to the current path,
+        // even though Hidden already matches.
+        KDesktopFile file(entryPath());
+        KConfigGroup group = file.desktopGroup();
+        group.writeEntry("Type", QStringLiteral("Application"));
+        group.writeEntry("Exec", QStringLiteral("\"/old/prefix/krunner-remindme\""));
+        group.writeEntry("Hidden", false);
+        file.sync();
+
+        RemindmeAutostart autostart(tempDir->path());
+        autostart.setActive(true);
+
+        KDesktopFile result(entryPath());
+        const QString exec = result.desktopGroup().readEntry("Exec");
+        QVERIFY(exec != QStringLiteral("\"/old/prefix/krunner-remindme\""));
+        QVERIFY(exec.startsWith(QLatin1Char('"')));
     }
 
     void testDisableHidesEntry()
@@ -74,18 +105,19 @@ private Q_SLOTS:
 
     void testNoRewriteWhenStateUnchanged()
     {
-        KDesktopFile file(entryPath());
-        KConfigGroup group = file.desktopGroup();
-        group.writeEntry("Type", QStringLiteral("Application"));
-        group.writeEntry("Exec", QStringLiteral("sentinel"));
-        group.writeEntry("Hidden", false);
-        file.sync();
-
         RemindmeAutostart autostart(tempDir->path());
-        autostart.setActive(true); // already enabled, must not touch the entry
+        autostart.setActive(true); // create the entry with the current Exec
 
-        KDesktopFile result(entryPath());
-        QCOMPARE(result.desktopGroup().readEntry("Exec"), QStringLiteral("sentinel"));
+        QFile first(entryPath());
+        QVERIFY(first.open(QIODevice::ReadOnly));
+        const QByteArray original = first.readAll();
+        first.close();
+
+        autostart.setActive(true); // already enabled and current, must not touch the entry
+
+        QFile second(entryPath());
+        QVERIFY(second.open(QIODevice::ReadOnly));
+        QCOMPARE(second.readAll(), original);
     }
 };
 
