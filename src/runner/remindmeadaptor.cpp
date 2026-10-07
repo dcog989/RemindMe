@@ -15,7 +15,17 @@
 
 namespace
 {
+// Keep in sync with the X-Plasma-Runner-Syntaxes hints in data/plasma-runner-remindme.desktop,
+// which spell these same trigger words but cannot share this list.
 const QStringList s_triggerWords{QStringLiteral("remindme"), QStringLiteral("rme")};
+
+// Match-id tags: Run() dispatches on them and the builders prepend them. Sharing the constants
+// keeps parsing and construction from drifting apart.
+const QString s_createPrefix{QStringLiteral("create:")};
+const QString s_timerPrefix{QStringLiteral("timer")};
+const QString s_cancelIdPrefix{QStringLiteral("cancelid:")};
+const QString s_cancelMessagePrefix{QStringLiteral("cancelmsg:")};
+const QString s_cancelPrefix{QStringLiteral("cancel:")};
 
 // KRunner::QueryMatch::CategoryRelevance::Highest. The DBus API carries the raw int.
 constexpr int categoryRelevanceHighest = 100;
@@ -111,14 +121,14 @@ RemoteActions RemindmeAdaptor::Actions()
 
 void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
 {
-    if (matchId.startsWith(QLatin1String("create:"))) {
-        const Remindme::Duration duration = Remindme::parseDurationAndMessage(matchId.mid(7));
+    if (matchId.startsWith(s_createPrefix)) {
+        const Remindme::Duration duration = Remindme::parseDurationAndMessage(matchId.mid(s_createPrefix.size()));
         if (duration.valid) {
             m_engine->Create(duration.seconds, duration.message);
         }
-    } else if (matchId.startsWith(QLatin1String("timer"))) {
+    } else if (matchId.startsWith(s_timerPrefix)) {
         // A listed timer shows its reminder by default; its "cancel" action cancels it.
-        const int id = matchId.mid(5).toInt();
+        const int id = matchId.mid(s_timerPrefix.size()).toInt();
         if (actionId == QLatin1String("cancel")) {
             m_engine->Cancel(id);
         } else {
@@ -131,15 +141,15 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
             }
             m_engine->Show(id);
         }
-    } else if (matchId.startsWith(QLatin1String("cancelid:"))) {
+    } else if (matchId.startsWith(s_cancelIdPrefix)) {
         // Checked before the "cancel:" case below: both ids start with "cancel", so an
         // explicit trailing ":" after each tag keeps the prefixes mutually exclusive
         // regardless of check order.
-        m_engine->Cancel(matchId.mid(9).toInt());
-    } else if (matchId.startsWith(QLatin1String("cancelmsg:"))) {
-        m_engine->CancelByMessage(matchId.mid(10));
-    } else if (matchId.startsWith(QLatin1String("cancel:"))) {
-        m_engine->Cancel(matchId.mid(7).toInt());
+        m_engine->Cancel(matchId.mid(s_cancelIdPrefix.size()).toInt());
+    } else if (matchId.startsWith(s_cancelMessagePrefix)) {
+        m_engine->CancelByMessage(matchId.mid(s_cancelMessagePrefix.size()));
+    } else if (matchId.startsWith(s_cancelPrefix)) {
+        m_engine->Cancel(matchId.mid(s_cancelPrefix.size()).toInt());
     }
 }
 
@@ -211,7 +221,7 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
     }
 
     // The whole term is encoded in the id so Run() can re-parse it without keeping match state.
-    RemoteMatch match = makeMatch(QStringLiteral("create:") + term, text, 0.9);
+    RemoteMatch match = makeMatch(s_createPrefix + term, text, 0.9);
     match.properties.insert(QStringLiteral("multiline"), true);
     matches.append(match);
 }
@@ -227,7 +237,7 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
     for (const Remindme::TimerInfo &timer : timers) {
         // All details go in the text line so they are visible regardless of row selection state;
         // the id is included so that "rme cancel <id>" can target a specific timer.
-        RemoteMatch match = makeMatch(QStringLiteral("timer%1").arg(timer.id), timerText(timer), 0.7);
+        RemoteMatch match = makeMatch(s_timerPrefix + QString::number(timer.id), timerText(timer), 0.7);
         match.properties.insert(QStringLiteral("multiline"), true);
         match.properties.insert(QStringLiteral("actions"), QStringList{QStringLiteral("cancel")});
         matches.append(match);
@@ -274,17 +284,17 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
             addSimpleMatch(matches, i18n("No timer with id %1", id), i18n("Use rme list to see timers"));
             return;
         }
-        matches.append(makeMatch(QStringLiteral("cancelid:%1").arg(id), i18n("Cancel timer #%1", idString), 0.8));
+        matches.append(makeMatch(s_cancelIdPrefix + QString::number(id), i18n("Cancel timer #%1", idString), 0.8));
     } else {
         // The term may be pasted markup; the match text is rendered as rich text, so escape it
         // to keep the message literal (see also the "Invalid:" text in addCreateMatch).
-        matches.append(makeMatch(QStringLiteral("cancelmsg:") + idString, i18n("Cancel all timers matching \"%1\"", idString.toHtmlEscaped()), 0.8));
+        matches.append(makeMatch(s_cancelMessagePrefix + idString, i18n("Cancel all timers matching \"%1\"", idString.toHtmlEscaped()), 0.8));
     }
 }
 
 void RemindmeAdaptor::addCancelTimerMatch(RemoteMatches &matches, const Remindme::TimerInfo &timer) const
 {
-    RemoteMatch match = makeMatch(QStringLiteral("cancel:%1").arg(timer.id), timerText(timer), 0.8);
+    RemoteMatch match = makeMatch(s_cancelPrefix + QString::number(timer.id), timerText(timer), 0.8);
     match.properties.insert(QStringLiteral("subtext"), i18n("Cancel this timer"));
     match.properties.insert(QStringLiteral("multiline"), true);
     matches.append(match);

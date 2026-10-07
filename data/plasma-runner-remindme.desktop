@@ -12,5 +12,6 @@ X-Plasma-API=DBus2
 X-Plasma-DBusRunner-Service=io.github.dcog989.remindme
 X-Plasma-DBusRunner-Path=/
 X-Plasma-Request-Actions-Once=true
+# Trigger words below must match s_triggerWords in src/runner/remindmeadaptor.cpp.
 X-Plasma-Runner-Syntaxes=remindme <duration> [<message>],rme <duration> [<message>],rme list,rme cancel <id>,rme cancel <message>
 X-Plasma-Runner-Syntax-Descriptions=Create and manage timers.,Create and manage timers.,List timers,Cancel timers with given id,Cancel all timers matching given message
