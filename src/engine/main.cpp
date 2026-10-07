@@ -59,11 +59,16 @@ int main(int argc, char **argv)
     // the process alive until the user snoozes or dismisses it.
     int openDialogCount = 0;
 
+    // Headless sound notifications still in flight. Like a dialog, the alarm was already removed
+    // from the engine, so without this the process would quit and tear down the bus before the
+    // asynchronous notification is delivered. Held until KNotification reports it closed.
+    int pendingSoundCount = 0;
+
     // Exit when there is nothing left to do; D-Bus activation restarts the helper on demand.
     // Drop the service name first so a call racing the exit is routed to a freshly activated
     // helper instead of this process's torn-down object tree.
     const auto tryQuit = [&]() {
-        if (engine.List().isEmpty() && openDialogCount == 0) {
+        if (engine.List().isEmpty() && openDialogCount == 0 && pendingSoundCount == 0) {
             QDBusConnection::sessionBus().unregisterService(s_serviceName);
             app.quit();
         }
@@ -80,6 +85,15 @@ int main(int argc, char **argv)
                 KNotification *sound = new KNotification(QStringLiteral("remindme"), KNotification::CloseOnTimeout, &engine);
                 sound->setTitle(i18n("Timer finished"));
                 sound->setText(timer.message.isEmpty() ? i18n("Your timer has finished") : timer.message);
+                // Count the sound before sending: sendEvent() is asynchronous, and the
+                // commitTimers() count signal that reaches tryQuit() runs first.
+                ++pendingSoundCount;
+                // KNotification auto-deletes on close, so closed() is the last chance to react.
+                QObject::connect(sound, &KNotification::closed, &app, [&pendingSoundCount, &tryQuit]() {
+                    if (--pendingSoundCount == 0) {
+                        tryQuit();
+                    }
+                });
                 sound->sendEvent();
             }
             return;
