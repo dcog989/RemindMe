@@ -16,6 +16,8 @@ add_executable(krunner-remindme
     engine/remindmetime.h
     engine/remindmealarmdialog.cpp
     engine/remindmealarmdialog.h
+    engine/remindmealarmnotification.cpp
+    engine/remindmealarmnotification.h
     engine/remindmealarmpresenter.cpp
     engine/remindmealarmpresenter.h
     engine/remindmealarmsound.cpp

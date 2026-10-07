@@ -3,17 +3,16 @@
 #include <QPointer>
 #include <QTimer>
 
-#include <KLocalizedString>
 #include <KNotification>
+
+#include "remindmealarmnotification.h"
 
 AlarmSound::AlarmSound(const QString &message, QObject *parent)
     : QObject(parent)
 {
     // LoopSound makes the audio plugin repeat the sound until the notification is closed; the
     // notification is a child of this object, so closing the dialog (our parent) stops the loop.
-    QPointer<KNotification> sound = new KNotification(QStringLiteral("remindme"), KNotification::LoopSound, this);
-    sound->setTitle(i18n("Timer finished"));
-    sound->setText(message.isEmpty() ? i18n("Your timer has finished") : message);
+    QPointer<KNotification> sound = Remindme::makeAlarmNotification(message, KNotification::LoopSound, this);
     sound->sendEvent();
     // Stop the looping alarm after a while, but keep the window open until dismissed.
     // KNotification auto-deletes once closed (auto-delete is on by default for C++), so the guard

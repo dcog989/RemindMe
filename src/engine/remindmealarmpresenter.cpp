@@ -2,10 +2,10 @@
 
 #include <QGuiApplication>
 
-#include <KLocalizedString>
 #include <KNotification>
 
 #include "remindmealarmdialog.h"
+#include "remindmealarmnotification.h"
 
 AlarmPresenter::AlarmPresenter(RemindmeEngine &engine, QObject *parent)
     : QObject(parent)
@@ -62,9 +62,7 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, bool expire
 
 void AlarmPresenter::presentSound(const Remindme::TimerInfo &timer)
 {
-    auto *sound = new KNotification(QStringLiteral("remindme"), KNotification::CloseOnTimeout, this);
-    sound->setTitle(i18n("Timer finished"));
-    sound->setText(timer.message.isEmpty() ? i18n("Your timer has finished") : timer.message);
+    KNotification *sound = Remindme::makeAlarmNotification(timer.message, KNotification::CloseOnTimeout, this);
     // Count the sound before sending: sendEvent() is asynchronous, and the engine's count signal
     // that reaches the quit check runs first.
     ++m_pendingSoundCount;

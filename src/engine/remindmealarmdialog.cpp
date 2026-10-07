@@ -11,6 +11,7 @@
 #include <KFormat>
 #include <KLocalizedString>
 
+#include "remindmealarmnotification.h"
 #include "remindmealarmsound.h"
 
 namespace
@@ -56,7 +57,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     if (expired) {
-        setWindowTitle(i18n("Timer finished"));
+        setWindowTitle(Remindme::alarmTitle());
         if (!timer.message.isEmpty()) {
             QLabel *messageLabel = new QLabel(timer.message, this);
             messageLabel->setWordWrap(true);
