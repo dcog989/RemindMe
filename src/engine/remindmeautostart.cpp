@@ -25,9 +25,13 @@ RemindmeAutostart::~RemindmeAutostart() = default;
 
 void RemindmeAutostart::setActive(bool active)
 {
+    KDesktopFile file(m_entryPath);
+    if (file.exists() && file.desktopGroup().readEntry("Hidden", false) == !active) {
+        return;
+    }
+
     QDir().mkpath(m_autostartDir);
 
-    KDesktopFile file(m_entryPath);
     KConfigGroup group = file.desktopGroup();
     group.writeEntry("Type", QStringLiteral("Application"));
     group.writeEntry("Name", QStringLiteral("RemindMe Timer"));

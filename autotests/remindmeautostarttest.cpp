@@ -71,6 +71,22 @@ private Q_SLOTS:
 
         QCOMPARE(hidden(true), false); // enabled again
     }
+
+    void testNoRewriteWhenStateUnchanged()
+    {
+        KDesktopFile file(entryPath());
+        KConfigGroup group = file.desktopGroup();
+        group.writeEntry("Type", QStringLiteral("Application"));
+        group.writeEntry("Exec", QStringLiteral("sentinel"));
+        group.writeEntry("Hidden", false);
+        file.sync();
+
+        RemindmeAutostart autostart(tempDir->path());
+        autostart.setActive(true); // already enabled, must not touch the entry
+
+        KDesktopFile result(entryPath());
+        QCOMPARE(result.desktopGroup().readEntry("Exec"), QStringLiteral("sentinel"));
+    }
 };
 
 QTEST_GUILESS_MAIN(RemindmeAutostartTest)
