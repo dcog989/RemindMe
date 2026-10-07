@@ -20,6 +20,20 @@ const QStringList s_triggerWords{QStringLiteral("remindme"), QStringLiteral("rme
 // KRunner::QueryMatch::CategoryRelevance::Highest. The DBus API carries the raw int.
 constexpr int categoryRelevanceHighest = 100;
 
+// Builds a match carrying the fields every reminder match shares, so a new common field only has
+// to be added here. Callers layer on any per-match properties afterwards.
+RemoteMatch makeMatch(const QString &id, const QString &text, qreal relevance)
+{
+    RemoteMatch match;
+    match.id = id;
+    match.text = text;
+    match.iconName = QStringLiteral("kronometer");
+    match.categoryRelevance = categoryRelevanceHighest;
+    match.relevance = relevance;
+    match.properties.insert(QStringLiteral("actions"), QStringList());
+    return match;
+}
+
 QString formatReminderTime(const QDateTime &deadline, bool capitalizeDay = true)
 {
     const QDate today = QDate::currentDate();
@@ -170,14 +184,8 @@ void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &tri
 
     int index = 0;
     for (const Usage &usage : usages) {
-        RemoteMatch match;
-        match.id = QStringLiteral("usage%1").arg(index++);
-        match.text = prefix + QLatin1Char(' ') + usage.command;
-        match.iconName = QStringLiteral("kronometer");
-        match.categoryRelevance = categoryRelevanceHighest;
-        match.relevance = 0.6;
+        RemoteMatch match = makeMatch(QStringLiteral("usage%1").arg(index++), prefix + QLatin1Char(' ') + usage.command, 0.6);
         match.properties.insert(QStringLiteral("subtext"), usage.description);
-        match.properties.insert(QStringLiteral("actions"), QStringList());
         matches.append(match);
     }
 }
@@ -202,15 +210,9 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
         text += QStringLiteral("<br>") + duration.message.toHtmlEscaped();
     }
 
-    RemoteMatch match;
     // The whole term is encoded in the id so Run() can re-parse it without keeping match state.
-    match.id = QStringLiteral("create:") + term;
-    match.text = text;
-    match.iconName = QStringLiteral("kronometer");
-    match.categoryRelevance = categoryRelevanceHighest;
-    match.relevance = 0.9;
+    RemoteMatch match = makeMatch(QStringLiteral("create:") + term, text, 0.9);
     match.properties.insert(QStringLiteral("multiline"), true);
-    match.properties.insert(QStringLiteral("actions"), QStringList());
     matches.append(match);
 }
 
@@ -223,14 +225,9 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
     }
 
     for (const Remindme::TimerInfo &timer : timers) {
-        RemoteMatch match;
-        match.id = QStringLiteral("timer%1").arg(timer.id);
         // All details go in the text line so they are visible regardless of row selection state;
         // the id is included so that "rme cancel <id>" can target a specific timer.
-        match.text = timerText(timer);
-        match.iconName = QStringLiteral("kronometer");
-        match.categoryRelevance = categoryRelevanceHighest;
-        match.relevance = 0.7;
+        RemoteMatch match = makeMatch(QStringLiteral("timer%1").arg(timer.id), timerText(timer), 0.7);
         match.properties.insert(QStringLiteral("multiline"), true);
         match.properties.insert(QStringLiteral("actions"), QStringList{QStringLiteral("cancel")});
         matches.append(match);
@@ -262,10 +259,6 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     idLocale.setNumberOptions(QLocale::RejectGroupSeparator);
     const int id = idLocale.toInt(idString, &isNumber);
 
-    RemoteMatch match;
-    match.iconName = QStringLiteral("kronometer");
-    match.categoryRelevance = categoryRelevanceHighest;
-    match.properties.insert(QStringLiteral("actions"), QStringList());
     if (isNumber) {
         // Validate the id refers to an active timer, so a stale or mistyped id is not
         // silently accepted as a no-op cancellation.
@@ -281,43 +274,26 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
             addSimpleMatch(matches, i18n("No timer with id %1", id), i18n("Use rme list to see timers"));
             return;
         }
-        match.id = QStringLiteral("cancelid:%1").arg(id);
-        // The "#" prefix mirrors how ids are shown in "rme list", marking this as an id
-        match.text = i18n("Cancel timer #%1", idString);
-        match.relevance = 0.8;
+        matches.append(makeMatch(QStringLiteral("cancelid:%1").arg(id), i18n("Cancel timer #%1", idString), 0.8));
     } else {
         // The term may be pasted markup; the match text is rendered as rich text, so escape it
         // to keep the message literal (see also the "Invalid:" text in addCreateMatch).
-        match.id = QStringLiteral("cancelmsg:") + idString;
-        match.text = i18n("Cancel all timers matching \"%1\"", idString.toHtmlEscaped());
-        match.relevance = 0.8;
+        matches.append(makeMatch(QStringLiteral("cancelmsg:") + idString, i18n("Cancel all timers matching \"%1\"", idString.toHtmlEscaped()), 0.8));
     }
-    matches.append(match);
 }
 
 void RemindmeAdaptor::addCancelTimerMatch(RemoteMatches &matches, const Remindme::TimerInfo &timer) const
 {
-    RemoteMatch match;
-    match.id = QStringLiteral("cancel:%1").arg(timer.id);
-    match.text = timerText(timer);
-    match.iconName = QStringLiteral("kronometer");
-    match.categoryRelevance = categoryRelevanceHighest;
-    match.relevance = 0.8;
+    RemoteMatch match = makeMatch(QStringLiteral("cancel:%1").arg(timer.id), timerText(timer), 0.8);
     match.properties.insert(QStringLiteral("subtext"), i18n("Cancel this timer"));
     match.properties.insert(QStringLiteral("multiline"), true);
-    match.properties.insert(QStringLiteral("actions"), QStringList());
     matches.append(match);
 }
 
 void RemindmeAdaptor::addSimpleMatch(RemoteMatches &matches, const QString &text, const QString &subtext) const
 {
-    RemoteMatch match;
-    match.text = text;
-    match.iconName = QStringLiteral("kronometer");
-    match.categoryRelevance = categoryRelevanceHighest;
-    match.relevance = 0.4;
+    RemoteMatch match = makeMatch(QString(), text, 0.4);
     match.properties.insert(QStringLiteral("subtext"), subtext);
-    match.properties.insert(QStringLiteral("actions"), QStringList());
     matches.append(match);
 }
 
