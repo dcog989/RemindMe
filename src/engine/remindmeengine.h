@@ -54,7 +54,6 @@ public:
     // unit tests can drive expiry deterministically without real-time waits.
     void checkExpiredTimers();
 
-public Q_SLOTS:
     Remindme::TimerInfo Create(qint32 durationSeconds, const QString &message);
     QList<Remindme::TimerInfo> List();
     bool Cancel(qint32 id);
