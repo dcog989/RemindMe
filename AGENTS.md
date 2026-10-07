@@ -2,7 +2,7 @@
 
 ## Project Specifics
 
-- Name: remindme
+- Name: RemindMe
 - Description: A third-party (user) KRunner plugin for KDE Plasma 6. Adds a timer function: type a trigger word followed by a duration (and optional message) to start a countdown; when time is up, a dedicated alarm window pops up with Snooze (+1 min) and Dismiss. Active timers can be listed and cancelled from KRunner, and they survive KRunner restarts.
 - Goal: a **standalone, third-party user plugin** distributed through the [KDE Store](https://store.kde.org/) and installable via KRunner's **Get New Plugins** flow; not part of KDE Plasma.
 - Status: migration from the in-tree plasma-workspace plugin is complete; the extraction source has been removed. One `krunner-remindme` process is the engine, the KRunner DBus2 runner and the alarm window.
@@ -75,11 +75,11 @@ remindme/
 - Keep modifications minimal and scoped; prefer incremental improvements over rewrites. Ask before architectural changes.
 - Use explicit types and named constants (no magic numbers).
 - Return explicit error types; do not suppress exceptions.
+- Follow standard repository linting and formatting configs.
 - Decompose files over 400 lines if they mix concerns.
 - Use clear naming over comments; reserve comments for complex workarounds or non-obvious issues — why, not what.
 - Never run git mutations (commit, push, reset, rebase, amend) unless explicitly instructed.
 - Do not create documentation files unless explicitly requested.
-- Do not delete files or make destructive changes without confirmation.
 
 ### Verification
 
@@ -93,20 +93,19 @@ remindme/
 
 ### Testing
 
-- Only add tests for genuinely unit-testable logic worth guarding; skip trivial changes and untestable behavior (e.g. UI layout/click mapping).
+- Do not create test files for trivial changes, or for behavior that is not reliably unit-testable in the test environment (e.g. UI layout/click mapping). Prefer no new files; only add a test when the logic is genuinely testable and worth guarding.
 
 ### Definition of Done
 
 - Logic fully implemented.
 - Existing docs updated if public interfaces changed.
-- On completion, print a concise conventional commit message in a fenced code block.
-- The project licence is GPL-3.0-or-later, declared in the root `LICENSE`.
-- Affected tests pass.
-- New/modified features have tests.
+- When required by the `Verification` rules, run the corresponding `Workflow` command.
+- On completion of an update or fix, print a concise conventional commit message in a fenced code block.
 
 ### Communication Style
 
 - Provide concise, actionable responses.
 - Ask clarifying questions when requirements are ambiguous.
 - Flag potential risks or edge cases proactively.
-- Be direct: no empathy claims, hedging, disclaimers, or meta-commentary.
+- Do not pretend to understand how the user feels.
+- Never editorialise your answer. No "to be honest", "honestly", hedging, disclaimers, or meta-commentary — just answer.
