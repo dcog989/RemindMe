@@ -9,7 +9,7 @@ X-KDE-PluginInfo-Version=@PROJECT_VERSION@
 X-KDE-PluginInfo-License=GPL-3.0-or-later
 X-KDE-PluginInfo-EnabledByDefault=true
 X-Plasma-API=DBus2
-X-Plasma-DBusRunner-Service=io.github.dcog989.remindme
+X-Plasma-DBusRunner-Service=@REMINDME_DBUS_SERVICE_NAME@
 X-Plasma-DBusRunner-Path=/
 X-Plasma-Request-Actions-Once=true
 # Trigger words below must match s_triggerWords in src/runner/remindmeadaptor.cpp.

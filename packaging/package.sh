@@ -24,6 +24,12 @@ if [ -z "$version" ]; then
     echo "could not read the version from project() in CMakeLists.txt" >&2
     exit 1
 fi
+# Likewise for the D-Bus service name set in CMakeLists.txt.
+service_name="$(sed -n 's/^set(REMINDME_DBUS_SERVICE_NAME "\([^"]*\)").*/\1/p' CMakeLists.txt)"
+if [ -z "$service_name" ]; then
+    echo "could not read REMINDME_DBUS_SERVICE_NAME from CMakeLists.txt" >&2
+    exit 1
+fi
 name="remindme-$version"
 out="dist/$name.tar.gz"
 
@@ -32,7 +38,8 @@ trap 'rm -rf "$work"' EXIT
 mkdir -p "$work/$name" dist
 git archive HEAD | tar -x -C "$work/$name"
 # Render the metadata the installer copies; the archive ships the template otherwise.
-sed -i "s/@PROJECT_VERSION@/$version/" "$work/$name/data/plasma-runner-remindme.desktop"
+sed -i -e "s/@PROJECT_VERSION@/$version/" -e "s/@REMINDME_DBUS_SERVICE_NAME@/$service_name/" \
+    "$work/$name/data/plasma-runner-remindme.desktop"
 
 tar -czf "$out" -C "$work" "$name"
 echo "==> $out"

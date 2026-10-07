@@ -13,9 +13,9 @@
 
 namespace
 {
-// The D-Bus service KRunner auto-activates and talks to; must match the service file and the
-// .desktop X-Plasma-DBusRunner-Service.
-const QString s_serviceName = QStringLiteral("io.github.dcog989.remindme");
+// The D-Bus service KRunner auto-activates and talks to, injected by CMake
+// (REMINDME_DBUS_SERVICE_NAME) so the service file, .desktop and this registration cannot drift.
+const QString s_serviceName = QStringLiteral(REMINDME_DBUS_SERVICE_NAME);
 
 // Grace period for the idle-activation fallback below: long enough for any pending D-Bus call
 // to arrive before the process gives up and exits.

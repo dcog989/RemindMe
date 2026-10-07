@@ -28,8 +28,8 @@ class RemindmeIntegrationTest : public KRunner::AbstractRunnerTest
 
     static QString serviceName()
     {
-        // Must match data/plasma-runner-remindme.desktop and src/engine/main.cpp
-        return QStringLiteral("io.github.dcog989.remindme");
+        // The D-Bus service the runner registers, injected by CMake.
+        return QStringLiteral(REMINDME_DBUS_SERVICE_NAME);
     }
 
     static QRegularExpression timerIdRegex()

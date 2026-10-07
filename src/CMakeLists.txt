@@ -34,6 +34,10 @@ target_include_directories(krunner-remindme PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/runner
 )
 
+target_compile_definitions(krunner-remindme PRIVATE
+    REMINDME_DBUS_SERVICE_NAME="${REMINDME_DBUS_SERVICE_NAME}"
+)
+
 target_link_libraries(krunner-remindme PRIVATE
     Qt6::Core
     Qt6::DBus
@@ -47,7 +51,7 @@ target_link_libraries(krunner-remindme PRIVATE
 install(TARGETS krunner-remindme DESTINATION ${KDE_INSTALL_LIBEXECDIR_KF})
 
 ecm_generate_dbus_service_file(
-    NAME io.github.dcog989.remindme
+    NAME ${REMINDME_DBUS_SERVICE_NAME}
     EXECUTABLE ${KDE_INSTALL_FULL_LIBEXECDIR_KF}/krunner-remindme
     DESTINATION ${KDE_INSTALL_DBUSSERVICEDIR}
 )

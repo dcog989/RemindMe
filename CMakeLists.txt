@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.29)
 
 project(remindme VERSION 0.2.7 LANGUAGES CXX)
 
+# Single source of truth for the D-Bus service KRunner auto-activates: the generated service file,
+# the runner .desktop metadata and the C++ registration (compile definition) all derive from it.
+set(REMINDME_DBUS_SERVICE_NAME "io.github.dcog989.remindme")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -19,7 +23,7 @@ include(FeatureSummary)
 find_package(Qt6 6.9 REQUIRED COMPONENTS Core DBus Widgets)
 find_package(KF6 6.9 REQUIRED COMPONENTS CoreAddons I18n Notifications Config)
 
-# The runner metadata is generated from the project version so the two cannot drift.
+# The runner metadata is generated from the CMake variables so they cannot drift.
 set(REMINDME_DESKTOP_FILE ${CMAKE_CURRENT_BINARY_DIR}/plasma-runner-remindme.desktop)
 configure_file(
     ${CMAKE_CURRENT_SOURCE_DIR}/data/plasma-runner-remindme.desktop
