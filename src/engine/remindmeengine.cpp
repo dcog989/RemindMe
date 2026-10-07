@@ -82,7 +82,8 @@ RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, st
     if (!m_useTimerfd) {
         m_sweepTimer.setInterval(sweepIntervalMs);
         connect(&m_sweepTimer, &QTimer::timeout, this, &RemindmeEngine::checkExpiredTimers);
-        m_sweepTimer.start();
+        // Started by scheduleExpiryCheck() only while timers exist, so an idle fallback-mode
+        // helper does not wake every sweepIntervalMs forever.
     }
 
     scheduleExpiryCheck();
@@ -279,8 +280,15 @@ void RemindmeEngine::scheduleExpiryCheck()
 #endif
         } else {
             m_expiryTimer.stop();
+            // Nothing to watch for: stop the periodic sweep so the fallback helper does not wake
+            // forever. It is restarted below as soon as a timer exists again.
+            m_sweepTimer.stop();
         }
         return;
+    }
+
+    if (!m_useTimerfd && !m_sweepTimer.isActive()) {
+        m_sweepTimer.start();
     }
 
     qint64 nextDeadline = std::numeric_limits<qint64>::max();

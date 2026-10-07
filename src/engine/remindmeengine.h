@@ -109,7 +109,8 @@ private:
     QMap<int, Remindme::TimerInfo> m_firedAlarms;
     QTimer m_expiryTimer;
     // Suspend fallback where the timerfd is unavailable (non-Linux, injected test clock): a
-    // monotonic QTimer pauses during suspend, so sweep the wall clock to bound wake lag.
+    // monotonic QTimer pauses during suspend, so sweep the wall clock to bound wake lag. Runs
+    // only while timers exist (managed by scheduleExpiryCheck()), not idle.
     QTimer m_sweepTimer;
     // Linux, real clock: a realtime-absolute timerfd fixes expiry to the wall clock, so a deadline
     // crossed during suspend fires on resume. When set, m_expiryTimer/m_sweepTimer are unused.
