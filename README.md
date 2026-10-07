@@ -4,6 +4,9 @@ A timer plugin for KDE Plasma 6. Allows you to create, list, and cancel timers f
 
 ## Install
 
+> [!NOTE]
+> not yet submitted to the KDE Store
+
 1. Open *System Settings → Search → Plasma Search*.
 2. Click *Get New Plugins…*.
 3. Search for *RemindMe* and install it.
@@ -48,12 +51,13 @@ Trigger words: `remindme` or `rme`.
 - `just format-check` — fails if C++ isn't formatted
 - `just lint` — typos, shellcheck, yamllint, editorconfig-checker, clang-format (skips missing tools)
 - `just tidy` — clang-tidy over the configured preset (configures and builds first)
+- `just pot` — extract translatable strings into `po/krunner_remindme.pot`
 - `just reload` — rebuild, reinstall and relaunch KRunner
 - `just package` — package for the KDE Store
 
 ### Install from source
 
-Build dependencies: a C++20 compiler, CMake 3.29+, Qt 6.9+ (`Core`, `DBus`, `Widgets`), KDE Frameworks 6 (`CoreAddons`, `I18n`, `Notifications`, `Config`) and [Extra CMake Modules](https://invent.kde.org/frameworks/extra-cmake-modules). Building the tests additionally needs Qt `Test` and the KF6 `Runner` framework (for `AbstractRunnerTest`).
+Build dependencies: a C++20 compiler, CMake 3.29+, Qt 6.9+ (`Core`, `DBus`, `Widgets`), KDE Frameworks 6 (`CoreAddons`, `I18n`, `Notifications`, `Config`), `gettext` (compiles the catalogues under `po/`) and [Extra CMake Modules](https://invent.kde.org/frameworks/extra-cmake-modules). Building the tests additionally needs Qt `Test` and the KF6 `Runner` framework (for `AbstractRunnerTest`).
 
 The build is driven by [CMake presets](CMakePresets.json), with a thin [`justfile`](justfile) for convenience. Requires [`just`](https://github.com/casey/just):
 

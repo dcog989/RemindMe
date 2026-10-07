@@ -23,6 +23,11 @@ include(FeatureSummary)
 find_package(Qt6 6.9 REQUIRED COMPONENTS Core DBus Widgets)
 find_package(KF6 6.9 REQUIRED COMPONENTS CoreAddons I18n Notifications Config)
 
+# Compile any po/<lang>/*.po to .mo and install them under KDE_INSTALL_LOCALEDIR. No translations
+# are shipped yet; dropping gettext catalogues into po/ is enough to enable a locale. Set
+# KF_SKIP_PO_PROCESSING=ON to skip this for non-release builds.
+ki18n_install(po)
+
 # The runner metadata is generated from the CMake variables so they cannot drift.
 set(REMINDME_DESKTOP_FILE ${CMAKE_CURRENT_BINARY_DIR}/plasma-runner-remindme.desktop)
 configure_file(

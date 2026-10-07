@@ -32,6 +32,12 @@ ci preset="user":
 install preset="user":
     cmake --install build/{{preset}}
 
+# Extract translatable strings into po/krunner_remindme.pot
+pot:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    XGETTEXT="${XGETTEXT:-xgettext}" podir=po bash po/Messages.sh
+
 # Remove all build trees
 clean:
     cmake -E rm -rf build
