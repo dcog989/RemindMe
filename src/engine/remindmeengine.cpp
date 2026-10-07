@@ -1,6 +1,7 @@
 #include "remindmeengine.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -145,13 +146,28 @@ bool RemindmeEngine::CancelByMessage(const QString &message)
 void RemindmeEngine::loadFromDisk()
 {
     QFile file(m_stateFilePath);
+    if (!file.exists()) {
+        return; // first run: nothing to load
+    }
     if (!file.open(QIODevice::ReadOnly)) {
+        qWarning() << "Could not read timer state file" << m_stateFilePath << file.errorString();
         return;
     }
 
     QJsonParseError error;
     const QJsonDocument doc = QJsonDocument::fromJson(file.readAll(), &error);
+    file.close();
+
     if (error.error != QJsonParseError::NoError || !doc.isArray()) {
+        const QString reason = error.error != QJsonParseError::NoError ? error.errorString() : QStringLiteral("root is not a JSON array");
+        qWarning() << "Discarding corrupt timer state file" << m_stateFilePath << reason;
+        // Preserve the unreadable file so the next save cannot silently overwrite the only copy
+        // of whatever the user had. QFile::rename() refuses to clobber an existing target.
+        const QString backupPath = m_stateFilePath + QStringLiteral(".bak");
+        QFile::remove(backupPath);
+        if (!QFile::rename(m_stateFilePath, backupPath)) {
+            qWarning() << "Could not back up corrupt timer state file to" << backupPath;
+        }
         return;
     }
 
@@ -183,9 +199,17 @@ void RemindmeEngine::saveToDisk() const
     }
 
     QSaveFile file(path);
-    if (file.open(QIODevice::WriteOnly)) {
-        file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
-        file.commit();
+    if (!file.open(QIODevice::WriteOnly)) {
+        qWarning() << "Could not open timer state file for writing" << path << file.errorString();
+        return;
+    }
+    if (file.write(QJsonDocument(array).toJson(QJsonDocument::Indented)) < 0) {
+        qWarning() << "Could not write timer state file" << path << file.errorString();
+        file.cancelWriting();
+        return;
+    }
+    if (!file.commit()) {
+        qWarning() << "Could not commit timer state file" << path << file.errorString();
     }
 }
 

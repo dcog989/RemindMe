@@ -170,6 +170,15 @@ private Q_SLOTS:
 
         resetEngine();
         QCOMPARE(engine->List().size(), 0);
+
+        // The unreadable file is preserved as .bak and not overwritten by the next save.
+        QVERIFY(!QFile::exists(stateFilePath()));
+        QFile backup(stateFilePath() + QStringLiteral(".bak"));
+        QVERIFY(backup.open(QIODevice::ReadOnly));
+        QCOMPARE(backup.readAll(), QByteArray("this is not json"));
+
+        QCOMPARE(engine->Create(60, QString()).id, 1); // next mutation writes a fresh file
+        QVERIFY(QFile::exists(stateFilePath()));
     }
 
     void testSnoozeRearmsExpiredTimer()
