@@ -13,12 +13,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  # Arch Linux Archive snapshot. Pinned together with the container digests below to make CI
+  # reproducible: the digest fixes the base image, this fixes the package versions. Bump both
+  # in the same commit when refreshing.
+  ARCHIVE_DATE: "2026/10/07"
+
 jobs:
   build-and-test:
     name: Build & test (KF6)
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container: archlinux@sha256:2fd1ae548076c67bcd41098ddd44e799058010e8d55f085d453dbb890e706860
     steps:
+      - name: Pin the package snapshot
+        run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed \
@@ -34,8 +42,10 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    container: archlinux:latest
+    container: archlinux@sha256:2fd1ae548076c67bcd41098ddd44e799058010e8d55f085d453dbb890e706860
     steps:
+      - name: Pin the package snapshot
+        run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed \
