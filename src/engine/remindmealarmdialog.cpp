@@ -31,7 +31,7 @@ QString formatDue(const QDateTime &deadline)
 }
 }
 
-RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool expired, QWidget *parent)
+RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool expired, qint64 nowMs, QWidget *parent)
     : QDialog(parent)
 {
     setAttribute(Qt::WA_DeleteOnClose);
@@ -48,7 +48,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
         // its deadline. Show when it was due and how long ago, so a late alarm is not mistaken
         // for one that fired on time. Missing the deadline by less than a minute is normal
         // scheduling jitter and does not warrant the "overdue" line.
-        const qint64 overdueMs = QDateTime::currentMSecsSinceEpoch() - timer.deadline;
+        const qint64 overdueMs = nowMs - timer.deadline;
         if (overdueMs >= Remindme::overdueNoticeThresholdMs) {
             const QDateTime scheduled = QDateTime::fromMSecsSinceEpoch(timer.deadline);
             const QDate today = QDate::currentDate();

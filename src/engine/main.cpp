@@ -114,7 +114,7 @@ int main(int argc, char **argv)
 
         // The dialog shows the message and, for the expiry alarm, plays a looping alarm sound
         // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
-        auto *dialog = new RemindmeAlarmDialog(timer, expired);
+        auto *dialog = new RemindmeAlarmDialog(timer, expired, engine.nowMs());
         ++openDialogCount;
         QObject::connect(dialog, &RemindmeAlarmDialog::snoozeRequested, &engine, [&engine, timer, expired]() {
             if (expired) {

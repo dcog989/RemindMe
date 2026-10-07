@@ -121,6 +121,11 @@ RemoteActions RemindmeAdaptor::Actions()
 
 void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
 {
+    // The activation token is single-use: consume it up front so a stale token cannot leak into
+    // a later Run(). KRunner calls SetActivationToken immediately before the Run it applies to.
+    const QString activationToken = m_activationToken;
+    m_activationToken.clear();
+
     if (matchId.startsWith(s_createPrefix)) {
         const Remindme::Duration duration = Remindme::parseDurationAndMessage(matchId.mid(s_createPrefix.size()));
         if (duration.valid) {
@@ -136,8 +141,8 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
             // window can take focus. Qt's QWindow::requestActivate(), reached via the dialog's
             // activateWindow(), consumes XDG_ACTIVATION_TOKEN from the environment, so set it
             // before Show() synchronously opens the window.
-            if (!m_activationToken.isEmpty()) {
-                qputenv("XDG_ACTIVATION_TOKEN", m_activationToken.toUtf8());
+            if (!activationToken.isEmpty()) {
+                qputenv("XDG_ACTIVATION_TOKEN", activationToken.toUtf8());
             }
             m_engine->Show(id);
         }

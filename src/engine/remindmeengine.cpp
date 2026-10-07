@@ -14,11 +14,12 @@
 
 #include <algorithm>
 #include <limits>
-#include <unistd.h>
 #include <utility>
 
 #ifdef Q_OS_LINUX
+#include <cerrno>
 #include <sys/timerfd.h>
+#include <unistd.h>
 #endif
 
 #include "remindmetime.h"
@@ -60,15 +61,22 @@ RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, st
     // back to the QTimer mechanism the tests drive directly.
     if (!m_hasInjectedClock) {
         m_deadlineFd = createRealtimeTimerFd();
+#ifdef Q_OS_LINUX
         if (m_deadlineFd >= 0) {
             m_useTimerfd = true;
             m_deadlineNotifier = new QSocketNotifier(m_deadlineFd, QSocketNotifier::Read, this);
             connect(m_deadlineNotifier, &QSocketNotifier::activated, this, [this](QSocketDescriptor, QSocketNotifier::Type) {
+                // Drain the timerfd. The fd is non-blocking, so a spurious wakeup can read
+                // nothing (EAGAIN); only a genuine error is worth reporting.
                 quint64 expirations = 0;
-                ::read(m_deadlineFd, &expirations, sizeof(expirations));
+                const ssize_t bytes = ::read(m_deadlineFd, &expirations, sizeof(expirations));
+                if (bytes < 0 && errno != EAGAIN) {
+                    qWarning() << "Could not read timerfd, errno" << errno;
+                }
                 checkExpiredTimers();
             });
         }
+#endif
     }
 
     if (!m_useTimerfd) {

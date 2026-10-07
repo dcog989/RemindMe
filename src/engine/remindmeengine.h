@@ -61,6 +61,9 @@ public:
     // Re-emits timerExpired() for every fired alarm loaded from disk. The host calls this once
     // after wiring the signal so alarms that fired before a restart are shown again.
     void replayPendingAlarms();
+    // Current time from the engine's clock: the wall clock in production, the injected clock in
+    // tests. Exposed so UI built around timers does not reach for the wall clock directly.
+    qint64 nowMs() const;
 
     Remindme::TimerInfo Create(qint32 durationSeconds, const QString &message);
     QList<Remindme::TimerInfo> List();
@@ -84,7 +87,6 @@ private:
     void loadFromDisk();
     void saveToDisk() const;
     void scheduleExpiryCheck();
-    qint64 nowMs() const;
     // Persists m_timers and m_firedAlarms and re-arms the expiry timer. Call after any mutation.
     void commitTimers();
     // Extends deadline by Remindme::snoozeDurationMs, anchored to now if it has already passed
