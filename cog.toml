@@ -22,7 +22,7 @@ pre_bump_hooks = [
     'sed -i -E "s/^project\(remindme VERSION [0-9.]+/project(remindme VERSION {{version}}/" CMakeLists.txt',
     "cmake --workflow --preset user",
 ]
-# Push the branch and tag, build the store payload and open the GitHub release in one go.
+# Build the store payload, push the branch and tag and open the GitHub release in one go.
 # The KDE Store upload has no CLI and stays manual.
 post_bump_hooks = ["bash packaging/release.sh"]
 
