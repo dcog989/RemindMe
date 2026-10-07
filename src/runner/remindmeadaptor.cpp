@@ -108,6 +108,13 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
         if (actionId == QLatin1String("cancel")) {
             m_engine->Cancel(id);
         } else {
+            // KRunner hands us a Wayland activation token (SetActivationToken) so the alarm
+            // window can take focus. Qt's QWindow::requestActivate(), reached via the dialog's
+            // activateWindow(), consumes XDG_ACTIVATION_TOKEN from the environment, so set it
+            // before Show() synchronously opens the window.
+            if (!m_activationToken.isEmpty()) {
+                qputenv("XDG_ACTIVATION_TOKEN", m_activationToken.toUtf8());
+            }
             m_engine->Show(id);
         }
     } else if (matchId.startsWith(QLatin1String("cancelid:"))) {
