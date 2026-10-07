@@ -153,7 +153,7 @@ void RemindmeEngine::loadFromDisk()
         const QJsonObject object = value.toObject();
         Remindme::TimerInfo timer;
         timer.id = object.value(QStringLiteral("id")).toInt();
-        timer.deadline = object.value(QStringLiteral("deadline")).toVariant().toLongLong();
+        timer.deadline = object.value(QStringLiteral("deadline")).toInteger();
         timer.message = object.value(QStringLiteral("message")).toString();
         if (timer.id >= 0 && timer.deadline > 0) {
             // A fired entry was already shown and is awaiting Snooze/Dismiss; keep it out of the

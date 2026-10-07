@@ -18,6 +18,37 @@ std::optional<int> parseLocaleInt(const QString &text)
     return value;
 }
 
+namespace
+{
+// Parses numberPart as a whole number (e.g. "5") or, when it carries the locale's decimal
+// separator with the ASCII dot accepted as an alias, a fraction ("0.5"), scaled by multiplier.
+// Returns the scaled seconds, or nullopt when numberPart is not a number in either form.
+std::optional<qint64> parseNumberPart(const QString &numberPart, qint64 multiplier)
+{
+    if (const std::optional<int> number = parseLocaleInt(numberPart)) {
+        return qint64(*number) * multiplier;
+    }
+    const QLocale locale;
+    const QString decimalPoint = locale.decimalPoint();
+    QString fractionPart = numberPart;
+    if (decimalPoint != QLatin1String(".")) {
+        fractionPart.replace(QLatin1Char('.'), decimalPoint);
+    }
+    if (!fractionPart.contains(decimalPoint)) {
+        return std::nullopt;
+    }
+    bool fractionOk = false;
+    const double value = locale.toDouble(fractionPart, &fractionOk);
+    const double seconds = value * multiplier;
+    // Range-check in the double domain before rounding: qRound64 on a huge (or NaN or infinite)
+    // value is undefined, so out-of-range input must never reach the cast.
+    if (!fractionOk || seconds <= 0.0 || seconds > static_cast<double>(maxDurationSeconds) + 0.5) {
+        return std::nullopt;
+    }
+    return qRound64(seconds);
+}
+}
+
 Duration parseDurationAndMessage(const QString &input)
 {
     Duration result;
@@ -81,31 +112,9 @@ Duration parseDurationAndMessage(const QString &input)
         }
         const QString numberPart = hasUnit ? timeToken.left(timeToken.size() - 1) : timeToken;
 
-        // Integer form, e.g. "5", "20s", "4h"
-        const std::optional<int> number = parseLocaleInt(numberPart);
-        if (number) {
-            setSecondsIfValid(qint64(*number) * multiplier);
-        }
-        // Fractional form, e.g. ".5", ".5m", "0,5h", rounded to whole seconds. The fraction is
-        // detected with the locale's decimal separator, and the ASCII dot a numeric keypad emits
-        // is accepted as an alias for it.
-        if (!result.valid) {
-            const QLocale locale;
-            const QString decimalPoint = locale.decimalPoint();
-            QString fractionPart = numberPart;
-            if (decimalPoint != QLatin1String(".")) {
-                fractionPart.replace(QLatin1Char('.'), decimalPoint);
-            }
-            if (fractionPart.contains(decimalPoint)) {
-                bool fractionOk = false;
-                const double value = locale.toDouble(fractionPart, &fractionOk);
-                const double seconds = value * multiplier;
-                // Range-check in the double domain before rounding: qRound64 on a huge (or NaN or
-                // infinite) value is undefined, so out-of-range input must never reach the cast.
-                if (fractionOk && seconds > 0.0 && seconds <= static_cast<double>(maxDurationSeconds) + 0.5) {
-                    setSecondsIfValid(qRound64(seconds));
-                }
-            }
+        // Integer or fractional form, e.g. "5", "20s", "0.5h"
+        if (const std::optional<qint64> seconds = parseNumberPart(numberPart, multiplier)) {
+            setSecondsIfValid(*seconds);
         }
     }
 
