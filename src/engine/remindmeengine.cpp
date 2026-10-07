@@ -43,6 +43,7 @@ RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, st
     : QObject(parent)
     , m_stateFilePath(stateFilePath.isEmpty() ? QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + QStringLiteral("/timers.json")
                                               : stateFilePath)
+    , m_hasInjectedClock(static_cast<bool>(clock))
     , m_clock(clock ? std::move(clock) : []() {
         return QDateTime::currentMSecsSinceEpoch();
     })
@@ -55,7 +56,7 @@ RemindmeEngine::RemindmeEngine(QObject *parent, const QString &stateFilePath, st
 
     // The timerfd's absolute times are real wall clock; an injected test clock is not, so fall
     // back to the QTimer mechanism the tests drive directly.
-    if (!clock) {
+    if (!m_hasInjectedClock) {
         m_deadlineFd = createRealtimeTimerFd();
         if (m_deadlineFd >= 0) {
             m_useTimerfd = true;

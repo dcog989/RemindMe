@@ -95,6 +95,9 @@ private:
     int m_deadlineFd = -1;
     QSocketNotifier *m_deadlineNotifier = nullptr;
     QString m_stateFilePath;
+    // Whether the caller injected a clock. Captured before m_clock consumes the argument, so the
+    // constructor never reads the moved-from function.
+    bool m_hasInjectedClock = false;
     std::function<qint64()> m_clock;
     int m_nextId = 1;
 };
