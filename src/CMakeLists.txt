@@ -11,6 +11,7 @@ add_executable(krunner-remindme
     engine/timerfddeadlinescheduler.h
     engine/remindmeengine.cpp
     engine/remindmeengine.h
+    engine/timerinfo.h
     engine/remindmetime.cpp
     engine/remindmetime.h
     engine/remindmealarmdialog.cpp

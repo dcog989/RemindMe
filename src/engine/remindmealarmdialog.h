@@ -2,7 +2,14 @@
 
 #include <QDialog>
 
-#include "remindmeengine.h"
+#include "timerinfo.h"
+
+namespace Remindme
+{
+// A timer that surfaces this far past its deadline or less is shown as having fired on time; only
+// later alarms get the "overdue" line in overdueText() (remindmealarmdialog.cpp).
+constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
+}
 
 class RemindmeAlarmDialog : public QDialog
 {

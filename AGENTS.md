@@ -25,6 +25,7 @@ remindme/
 │   ├── engine/                          # timer engine + alarm + entry point → krunner-remindme
 │   │   ├── main.cpp                     # D-Bus service, engine and adaptor wiring
 │   │   ├── remindmeengine.{h,cpp}       # timer engine (wall-clock deadlines, persistence)
+│   │   ├── timerinfo.h                  # TimerInfo model type (persisted, signalled)
 │   │   ├── deadlinescheduler.{h,cpp}    # deadline-wake abstraction + production factory
 │   │   ├── timerfddeadlinescheduler.{h,cpp} # timerfd (realtime) scheduler
 │   │   ├── qtimerdeadlinescheduler.{h,cpp}  # QTimer + wall-clock sweep fallback

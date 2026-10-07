@@ -1,33 +1,18 @@
 #pragma once
 
 #include <QMap>
-#include <QMetaType>
 #include <QObject>
 #include <QString>
 
+#include "timerinfo.h"
+
 namespace Remindme
 {
-struct TimerInfo {
-    int id = -1;
-    qint64 deadline = 0;
-    QString message;
-};
-
 // How long a snooze extends a timer by. This is also the duration named in the
 // "Snooze +1 minute" button/action labels in remindmealarmdialog.cpp; keep that label in sync
 // if this value ever changes.
 constexpr qint64 snoozeDurationMs = 60 * 1000;
-
-// A timer that surfaces this far past its deadline or less is shown as having fired on time;
-// only alarms later than this get the "due X ago" line in remindmealarmdialog.cpp.
-constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
-
-// Maximum time the looping expiry alarm sound plays; the alarm window itself stays open
-// until the user snoozes or dismisses it.
-constexpr qint64 maxAlarmSoundMs = 10 * 60 * 1000;
 }
-
-Q_DECLARE_METATYPE(Remindme::TimerInfo)
 
 class DeadlineScheduler;
 

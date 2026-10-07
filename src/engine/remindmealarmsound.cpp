@@ -6,8 +6,6 @@
 #include <KLocalizedString>
 #include <KNotification>
 
-#include "remindmeengine.h"
-
 AlarmSound::AlarmSound(const QString &message, QObject *parent)
     : QObject(parent)
 {
