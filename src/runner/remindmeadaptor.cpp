@@ -57,6 +57,14 @@ QString formatReminderTime(const QDateTime &deadline, bool capitalizeDay = true)
     return i18n("%1 at %2", QLocale().toString(deadline.date(), QLocale::ShortFormat), time);
 }
 
+std::optional<QString> stripPrefix(const QString &value, const QString &prefix)
+{
+    if (!value.startsWith(prefix)) {
+        return std::nullopt;
+    }
+    return value.mid(prefix.size());
+}
+
 std::optional<QString> termAfterTrigger(const QString &query)
 {
     const QString trimmed = query.trimmed();
@@ -126,14 +134,14 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     const QString activationToken = m_activationToken;
     m_activationToken.clear();
 
-    if (matchId.startsWith(s_createPrefix)) {
-        const Remindme::Duration duration = Remindme::parseDurationAndMessage(matchId.mid(s_createPrefix.size()));
+    if (const std::optional<QString> rest = stripPrefix(matchId, s_createPrefix)) {
+        const Remindme::Duration duration = Remindme::parseDurationAndMessage(*rest);
         if (duration.valid) {
             m_engine->Create(duration.seconds, duration.message);
         }
-    } else if (matchId.startsWith(s_timerPrefix)) {
+    } else if (const std::optional<QString> rest = stripPrefix(matchId, s_timerPrefix)) {
         // A listed timer shows its reminder by default; its "cancel" action cancels it.
-        const int id = matchId.mid(s_timerPrefix.size()).toInt();
+        const int id = rest->toInt();
         if (actionId == QLatin1String("cancel")) {
             m_engine->Cancel(id);
         } else {
@@ -146,15 +154,15 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
             }
             m_engine->Show(id);
         }
-    } else if (matchId.startsWith(s_cancelIdPrefix)) {
+    } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelIdPrefix)) {
         // Checked before the "cancel:" case below: both ids start with "cancel", so an
         // explicit trailing ":" after each tag keeps the prefixes mutually exclusive
         // regardless of check order.
-        m_engine->Cancel(matchId.mid(s_cancelIdPrefix.size()).toInt());
-    } else if (matchId.startsWith(s_cancelMessagePrefix)) {
-        m_engine->CancelByMessage(matchId.mid(s_cancelMessagePrefix.size()));
-    } else if (matchId.startsWith(s_cancelPrefix)) {
-        m_engine->Cancel(matchId.mid(s_cancelPrefix.size()).toInt());
+        m_engine->Cancel(rest->toInt());
+    } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
+        m_engine->CancelByMessage(*rest);
+    } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelPrefix)) {
+        m_engine->Cancel(rest->toInt());
     }
 }
 
