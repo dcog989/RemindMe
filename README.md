@@ -76,7 +76,7 @@ cmake --build --preset user
 cmake --install build/user
 ```
 
-Presets: `user` (`~/.local`, Debug), `release`, `system` (`/usr`), `asan` (ASan + UBSan). Configure, build and test in one go with `just ci` (or `cmake --workflow --preset user`); only `user` has a workflow preset, while `user` and `asan` also have test presets.
+Presets: `user` (`~/.local`, Debug), `release`, `system` (`/usr`), `asan` (ASan + UBSan). Configure, build and test in one go with `just ci` (or `cmake --workflow --preset <preset>`); every preset has both a workflow and a test preset.
 
 Because `remindme` is a D-Bus runner, a `~/.local` install needs no `QT_PLUGIN_PATH` and no sudo: KRunner scans `~/.local/share/krunner/dbusplugins`, D-Bus scans `~/.local/share/dbus-1/services`, and the service `Exec=` is an absolute path. Restart KRunner afterwards so it reloads the runner list:
 
