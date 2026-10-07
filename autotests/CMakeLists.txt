@@ -5,7 +5,6 @@ set(REMINDME_ENGINE_DIR ${CMAKE_SOURCE_DIR}/src/engine)
 # engine builds a scheduler by default even when the test injects its own.
 set(REMINDME_SCHEDULER_SOURCES
     ${REMINDME_ENGINE_DIR}/deadlinescheduler.cpp
-    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
     ${REMINDME_ENGINE_DIR}/timerfddeadlinescheduler.cpp
 )
 
@@ -21,7 +20,11 @@ target_sources(remindmeenginetest PRIVATE
 target_include_directories(remindmeenginetest PRIVATE ${REMINDME_ENGINE_DIR})
 
 ecm_add_test(deadlineschedulertest.cpp TEST_NAME deadlineschedulertest LINK_LIBRARIES Qt6::Test)
-target_sources(deadlineschedulertest PRIVATE ${REMINDME_SCHEDULER_SOURCES})
+# The QTimer scheduler is test-only (not in the production target), so this test compiles it.
+target_sources(deadlineschedulertest PRIVATE
+    ${REMINDME_SCHEDULER_SOURCES}
+    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
+)
 target_include_directories(deadlineschedulertest PRIVATE ${REMINDME_ENGINE_DIR})
 
 ecm_add_test(remindmeautostarttest.cpp TEST_NAME remindmeautostarttest LINK_LIBRARIES Qt6::Test KF6::ConfigCore)

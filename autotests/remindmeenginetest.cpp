@@ -19,7 +19,7 @@ using namespace Remindme;
 
 // Deterministic scheduler for the engine tests: it records the deadline the engine armed and only
 // wakes the engine when the test calls fire(), so expiry never depends on wall time or an event
-// loop. The QTimer-based production fallback's own wait/sweep behaviour is covered separately in
+// loop. The QTimer-based scheduler's own wait/sweep behaviour is covered separately in
 // deadlineschedulertest.cpp.
 class TestDeadlineScheduler : public DeadlineScheduler
 {
@@ -321,7 +321,7 @@ private Q_SLOTS:
     void testExpiryAfterClockJump()
     {
         // Simulates a timer coming due while the machine was asleep: the wall clock (fakeNow)
-        // jumps forward past the deadline. The QTimer fallback's periodic wall-clock sweep that
+        // jumps forward past the deadline. The QTimer scheduler's periodic wall-clock sweep that
         // notices this on its own is covered in deadlineschedulertest.cpp; here the manual
         // scheduler stands in for that wake.
         QSignalSpy spy(engine.data(), &RemindmeEngine::timerExpired);

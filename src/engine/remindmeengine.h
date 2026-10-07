@@ -22,7 +22,7 @@ class RemindmeEngine : public QObject
 
 public:
     // scheduler is injected by tests; when null the engine creates the production one (realtime
-    // timerfd where available, QTimer fallback otherwise) and parents it to itself.
+    // timerfd) and parents it to itself.
     explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, DeadlineScheduler *scheduler = nullptr);
 
     // Re-arms a timer that has already expired (and so moved to m_firedAlarms). The

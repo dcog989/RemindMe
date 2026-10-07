@@ -28,9 +28,10 @@ remindme/
 │   │   ├── timerinfo.h                  # TimerInfo model type (persisted, signalled)
 │   │   ├── deadlinescheduler.{h,cpp}    # deadline-wake abstraction + production factory
 │   │   ├── timerfddeadlinescheduler.{h,cpp} # timerfd (realtime) scheduler
-│   │   ├── qtimerdeadlinescheduler.{h,cpp}  # QTimer + wall-clock sweep fallback
+│   │   ├── qtimerdeadlinescheduler.{h,cpp}  # QTimer + wall-clock sweep (test-only)
 │   │   ├── remindmetime.{h,cpp}         # duration parser
 │   │   ├── remindmealarmdialog.{h,cpp}  # Snooze/Dismiss window
+│   │   ├── remindmealarmnotification.{h,cpp} # shared alarm KNotification factory
 │   │   ├── remindmealarmpresenter.{h,cpp} # dialog/sound presentation + lifetime
 │   │   ├── remindmealarmsound.{h,cpp}   # looping expiry-alarm sound + stop timer
 │   │   └── remindmeautostart.{h,cpp}    # session autostart toggling

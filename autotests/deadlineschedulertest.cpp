@@ -7,9 +7,9 @@
 
 #include <optional>
 
-// The engine tests drive expiry through a manual scheduler; these tests cover the QTimer fallback
-// that production uses where timerfd is unavailable, notably that its wall-clock sweep notices a
-// clock jump and that disarming stops it from waking.
+// The engine tests drive expiry through a manual scheduler; these tests cover the test-only QTimer
+// scheduler, notably that its wall-clock sweep notices a clock jump and that disarming stops it
+// from waking.
 class DeadlineSchedulerTest : public QObject
 {
     Q_OBJECT

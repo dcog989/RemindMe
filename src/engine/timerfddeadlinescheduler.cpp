@@ -34,11 +34,6 @@ TimerfdDeadlineScheduler::~TimerfdDeadlineScheduler()
     }
 }
 
-bool TimerfdDeadlineScheduler::isValid() const
-{
-    return m_fd >= 0;
-}
-
 void TimerfdDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadlineMs)
 {
     if (m_fd < 0) {

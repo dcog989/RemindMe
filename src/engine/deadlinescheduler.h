@@ -31,6 +31,6 @@ private:
     std::function<qint64()> m_clock;
 };
 
-// Builds the production scheduler: a realtime timerfd where available, otherwise a QTimer-based
-// fallback. The returned scheduler is parented to parent.
+// Builds the production scheduler: a realtime timerfd, which fires across suspend. The returned
+// scheduler is parented to parent.
 DeadlineScheduler *createDeadlineScheduler(QObject *parent = nullptr);
