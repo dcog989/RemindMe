@@ -44,24 +44,24 @@ int main(int argc, char **argv)
 
     RemindmeEngine engine;
 
-    // Enable the autostart entry while a timer exists so a timer still running when the session
-    // ends is relaunched next login, and disable it once the last one is gone so an idle helper is
-    // not started at every login. The initial call reconciles a leftover enabled entry after a hard
-    // shutdown that left no timer behind.
+    // Enable the autostart entry while a timer or an unacknowledged alarm exists so it is
+    // relaunched next login, and disable it once none are left so an idle helper is not started
+    // at every login. The initial call reconciles a leftover enabled entry after a hard shutdown
+    // that left no timer behind.
     auto autostart = std::make_unique<RemindmeAutostart>();
-    autostart->setActive(!engine.List().isEmpty());
-    QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &engine, [&autostart](int activeCount) {
-        autostart->setActive(activeCount > 0);
+    autostart->setActive(!engine.List().isEmpty() || engine.hasPendingAlarms());
+    QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &engine, [&autostart](int timerCount) {
+        autostart->setActive(timerCount > 0);
     });
 
     // Alarm windows currently open. The helper may only exit while this is zero: an expired
-    // timer is already removed from the engine, so on an expiry alarm the window alone keeps
-    // the process alive until the user snoozes or dismisses it.
+    // timer was already moved to the engine's fired set, so on an expiry alarm the window alone
+    // keeps the process alive until the user snoozes or dismisses it.
     int openDialogCount = 0;
 
-    // Headless sound notifications still in flight. Like a dialog, the alarm was already removed
-    // from the engine, so without this the process would quit and tear down the bus before the
-    // asynchronous notification is delivered. Held until KNotification reports it closed.
+    // Headless sound notifications still in flight. Like a dialog, the alarm was already moved to
+    // the engine's fired set, so without this the process would quit and tear down the bus before
+    // the asynchronous notification is delivered. Held until KNotification reports it closed.
     int pendingSoundCount = 0;
 
     // Exit when there is nothing left to do; D-Bus activation restarts the helper on demand.
@@ -110,7 +110,8 @@ int main(int argc, char **argv)
                 engine.Snooze(timer.id);
             }
         });
-        // Dismissing a still-active timer cancels it; an expired timer is already removed
+        // Dismissing a still-active timer cancels it; dismissing an expired alarm acknowledges
+        // and clears it from the engine's fired set (Cancel handles both).
         QObject::connect(dialog, &RemindmeAlarmDialog::dismissRequested, &engine, [&engine, timer]() {
             engine.Cancel(timer.id);
         });
@@ -137,6 +138,12 @@ int main(int argc, char **argv)
     // Whenever the engine's timer set changes (create, cancel, expiry, snooze), exit when
     // nothing remains; the engine persists its full state on every change first.
     QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &app, tryQuit);
+
+    // Re-present alarms that fired before this process started (e.g. the session ended while a
+    // dialog was open). The engine loaded them from the persisted "fired" entries; showing them
+    // now also bumps openDialogCount/pendingSoundCount so tryQuit() cannot drop them.
+    engine.replayPendingAlarms();
+
     new RemindmeAdaptor(&engine);
 
     QDBusConnection bus = QDBusConnection::sessionBus();

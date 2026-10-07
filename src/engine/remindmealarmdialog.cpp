@@ -56,10 +56,9 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, bool 
     connect(snoozeButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::snoozeRequested);
     connect(snoozeButton, &QPushButton::clicked, this, &QDialog::accept);
     connect(dismissButton, &QPushButton::clicked, this, &QDialog::accept);
-    // For a still-active timer, "Dismiss" cancels it; an expired timer is already gone
-    if (!expired) {
-        connect(dismissButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::dismissRequested);
-    }
+    // "Dismiss" cancels a still-active timer and acknowledges an expired alarm; both must clear
+    // engine state, otherwise a dismissed alarm would be replayed on the next start.
+    connect(dismissButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::dismissRequested);
 
     // The "remindme" event is Sound-only. LoopSound makes the audio plugin repeat the sound
     // until the notification is closed; it is a child of the dialog, so dismissing or

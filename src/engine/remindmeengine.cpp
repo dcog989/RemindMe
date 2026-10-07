@@ -119,7 +119,10 @@ QList<Remindme::TimerInfo> RemindmeEngine::List()
 
 bool RemindmeEngine::Cancel(qint32 id)
 {
-    if (m_timers.remove(id)) {
+    const bool removedActive = m_timers.remove(id) > 0;
+    // Clearing a fired alarm is how "Dismiss" acknowledges it after a restart.
+    const bool removedFired = m_firedAlarms.remove(id) > 0;
+    if (removedActive || removedFired) {
         commitTimers();
         return true;
     }
@@ -132,6 +135,14 @@ bool RemindmeEngine::CancelByMessage(const QString &message)
     for (auto it = m_timers.begin(); it != m_timers.end();) {
         if (it.value().message == message) {
             it = m_timers.erase(it);
+            removed = true;
+        } else {
+            ++it;
+        }
+    }
+    for (auto it = m_firedAlarms.begin(); it != m_firedAlarms.end();) {
+        if (it.value().message == message) {
+            it = m_firedAlarms.erase(it);
             removed = true;
         } else {
             ++it;
@@ -179,11 +190,17 @@ void RemindmeEngine::loadFromDisk()
         timer.deadline = object.value(QStringLiteral("deadline")).toVariant().toLongLong();
         timer.message = object.value(QStringLiteral("message")).toString();
         if (timer.id >= 0 && timer.deadline > 0) {
-            m_timers.insert(timer.id, timer);
+            // A fired entry was already shown and is awaiting Snooze/Dismiss; keep it out of the
+            // active set so List() and scheduling ignore it while it stays persisted for replay.
+            if (object.value(QStringLiteral("fired")).toBool()) {
+                m_firedAlarms.insert(timer.id, timer);
+            } else {
+                m_timers.insert(timer.id, timer);
+            }
             m_nextId = std::max(m_nextId, timer.id + 1);
         }
     }
-    Q_EMIT timerCountChanged(m_timers.size());
+    Q_EMIT timerCountChanged(m_timers.size() + m_firedAlarms.size());
 }
 
 void RemindmeEngine::saveToDisk() const
@@ -192,11 +209,19 @@ void RemindmeEngine::saveToDisk() const
     QDir().mkpath(QFileInfo(path).absolutePath());
 
     QJsonArray array;
-    for (const Remindme::TimerInfo &timer : std::as_const(m_timers)) {
-        array.append(QJsonObject{{QStringLiteral("id"), timer.id},
-                                 {QStringLiteral("deadline"), QJsonValue(static_cast<qint64>(timer.deadline))},
-                                 {QStringLiteral("message"), timer.message}});
-    }
+    const auto appendTimers = [&array](const QHash<int, Remindme::TimerInfo> &timers, bool fired) {
+        for (const Remindme::TimerInfo &timer : timers) {
+            QJsonObject object{{QStringLiteral("id"), timer.id},
+                               {QStringLiteral("deadline"), QJsonValue(static_cast<qint64>(timer.deadline))},
+                               {QStringLiteral("message"), timer.message}};
+            if (fired) {
+                object.insert(QStringLiteral("fired"), true);
+            }
+            array.append(object);
+        }
+    };
+    appendTimers(m_timers, false);
+    appendTimers(m_firedAlarms, true);
 
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -251,7 +276,8 @@ void RemindmeEngine::commitTimers()
 {
     saveToDisk();
     scheduleExpiryCheck();
-    Q_EMIT timerCountChanged(m_timers.size());
+    // Count fired alarms too: the host keeps autostart on while any alarm is unacknowledged.
+    Q_EMIT timerCountChanged(m_timers.size() + m_firedAlarms.size());
 }
 
 qint64 RemindmeEngine::extendedDeadline(qint64 deadline) const
@@ -281,8 +307,10 @@ void RemindmeEngine::checkExpiredTimers()
 
     // Notify before persisting: an expiry alarm renders a window whose existence an idle-exit
     // listener must see before the count signal (emitted from commitTimers) marks the engine
-    // as done. The expired timers are already removed either way.
+    // as done. Move the timer to the fired set so the alarm survives a restart until the user
+    // snoozes or dismisses it.
     for (const Remindme::TimerInfo &timer : std::as_const(expired)) {
+        m_firedAlarms.insert(timer.id, timer);
         Q_EMIT timerExpired(timer);
     }
 
@@ -316,10 +344,27 @@ void RemindmeEngine::Show(qint32 id)
     Q_EMIT showReminderRequested(it.value());
 }
 
+bool RemindmeEngine::hasPendingAlarms() const
+{
+    return !m_firedAlarms.isEmpty();
+}
+
+void RemindmeEngine::replayPendingAlarms()
+{
+    QList<Remindme::TimerInfo> pending = m_firedAlarms.values();
+    std::sort(pending.begin(), pending.end(), [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
+        return a.id < b.id;
+    });
+    for (const Remindme::TimerInfo &timer : std::as_const(pending)) {
+        Q_EMIT timerExpired(timer);
+    }
+}
+
 void RemindmeEngine::rearmExpiredTimer(const Remindme::TimerInfo &timer)
 {
-    // checkExpiredTimers() already removed the timer from m_timers; snoozeTimer() re-inserts
-    // it under its original id. Timer ids are never reused within this process, so this
-    // cannot collide with an active timer.
+    // checkExpiredTimers() moved the timer to m_firedAlarms; drop it from there so snoozeTimer(),
+    // which re-inserts it into m_timers under its original id, does not leave it in both sets.
+    // Timer ids are never reused within this process, so this cannot collide with an active timer.
+    m_firedAlarms.remove(timer.id);
     snoozeTimer(timer);
 }

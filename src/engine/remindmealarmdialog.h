@@ -15,6 +15,6 @@ public:
 
 Q_SIGNALS:
     void snoozeRequested();
-    // Emitted when "Dismiss" cancels a still-active timer; an expired timer is already gone
+    // Emitted when "Dismiss" cancels a still-active timer or acknowledges an expired alarm
     void dismissRequested();
 };

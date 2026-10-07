@@ -187,7 +187,8 @@ private Q_SLOTS:
         fakeNow += 2 * 1000; // the deadline has now passed
         engine->checkExpiredTimers();
 
-        QCOMPARE(engine->List().size(), 0); // expired and removed
+        QCOMPARE(engine->List().size(), 0); // expired and no longer active
+        QVERIFY(engine->hasPendingAlarms()); // but awaiting acknowledgment
 
         engine->rearmExpiredTimer(timer);
 
@@ -196,6 +197,45 @@ private Q_SLOTS:
         QCOMPARE(timers.constFirst().id, timer.id);
         QCOMPARE(timers.constFirst().message, QStringLiteral("tea"));
         QCOMPARE(timers.constFirst().deadline, fakeNow + Remindme::snoozeDurationMs);
+        QVERIFY(!engine->hasPendingAlarms()); // snoozing acknowledged the alarm
+    }
+
+    void testFiredAlarmSurvivesRestart()
+    {
+        const TimerInfo timer = engine->Create(1, QStringLiteral("bread"));
+        fakeNow += 2 * 1000; // the deadline has now passed
+        engine->checkExpiredTimers();
+        QVERIFY(engine->hasPendingAlarms());
+
+        engine.reset();
+        resetEngine(); // reload from disk
+
+        // The fired alarm is not active, but is still pending and replayed to the host.
+        QCOMPARE(engine->List().size(), 0);
+        QVERIFY(engine->hasPendingAlarms());
+        QSignalSpy replaySpy(engine.data(), &RemindmeEngine::timerExpired);
+        engine->replayPendingAlarms();
+        QCOMPARE(replaySpy.count(), 1);
+        const TimerInfo replayed = replaySpy.constFirst().constFirst().value<TimerInfo>();
+        QCOMPARE(replayed.id, timer.id);
+        QCOMPARE(replayed.message, QStringLiteral("bread"));
+        QCOMPARE(replayed.deadline, timer.deadline);
+    }
+
+    void testAcknowledgingFiredAlarmClearsIt()
+    {
+        const TimerInfo timer = engine->Create(1, QStringLiteral("bread"));
+        fakeNow += 2 * 1000;
+        engine->checkExpiredTimers();
+        QVERIFY(engine->hasPendingAlarms());
+
+        QVERIFY(engine->Cancel(timer.id)); // "Dismiss"
+        QVERIFY(!engine->hasPendingAlarms());
+
+        engine.reset();
+        resetEngine(); // the acknowledgment must have persisted
+        QVERIFY(!engine->hasPendingAlarms());
+        QCOMPARE(engine->List().size(), 0);
     }
 
     void testSnoozeActiveTimerKeepsRemainingTime()
