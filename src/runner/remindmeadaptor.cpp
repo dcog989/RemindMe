@@ -255,7 +255,12 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     bool isNumber = false;
     // Accept a leading "#" as an id marker, matching how ids are shown in "rme list"
     const QString idString = target.startsWith(QLatin1Char('#')) ? target.mid(1) : target;
-    const int id = idString.toInt(&isNumber);
+    // Parse through the locale, matching the duration parser, so the native digits a user typed
+    // for the duration can also address its id. RejectGroupSeparator keeps a message such as
+    // "1,5" or "1.5" from silently reading as the id 15 under a locale that groups either way.
+    QLocale idLocale;
+    idLocale.setNumberOptions(QLocale::RejectGroupSeparator);
+    const int id = idLocale.toInt(idString, &isNumber);
 
     RemoteMatch match;
     match.iconName = QStringLiteral("kronometer");
