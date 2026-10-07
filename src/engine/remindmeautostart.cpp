@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QFile>
 #include <QStandardPaths>
 
 namespace
@@ -26,7 +27,7 @@ RemindmeAutostart::~RemindmeAutostart() = default;
 void RemindmeAutostart::setActive(bool active)
 {
     KDesktopFile file(m_entryPath);
-    if (file.exists() && file.desktopGroup().readEntry("Hidden", false) == !active) {
+    if (QFile::exists(m_entryPath) && file.desktopGroup().readEntry("Hidden", false) == !active) {
         return;
     }
 
