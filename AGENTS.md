@@ -30,6 +30,7 @@ remindme/
 │   │   ├── qtimerdeadlinescheduler.{h,cpp}  # QTimer + wall-clock sweep fallback
 │   │   ├── remindmetime.{h,cpp}         # duration parser
 │   │   ├── remindmealarmdialog.{h,cpp}  # Snooze/Dismiss window
+│   │   ├── remindmealarmpresenter.{h,cpp} # dialog/sound presentation + lifetime
 │   │   └── remindmeautostart.{h,cpp}    # session autostart toggling
 │   └── runner/                          # org.kde.krunner1 D-Bus runner adaptor
 │       ├── remindmeadaptor.{h,cpp}      # Match/Run/Actions/Config/Teardown

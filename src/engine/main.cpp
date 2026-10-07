@@ -1,15 +1,13 @@
 #include <QApplication>
 #include <QDBusConnection>
-#include <QGuiApplication>
 #include <QTimer>
 
 #include <KLocalizedString>
-#include <KNotification>
 
 #include <memory>
 
 #include "remindmeadaptor.h"
-#include "remindmealarmdialog.h"
+#include "remindmealarmpresenter.h"
 #include "remindmeautostart.h"
 #include "remindmeengine.h"
 
@@ -67,94 +65,36 @@ int main(int argc, char **argv)
         autostart->setActive(timerCount > 0);
     });
 
-    // Alarm windows currently open. The helper may only exit while this is zero: an expired
-    // timer was already moved to the engine's fired set, so on an expiry alarm the window alone
-    // keeps the process alive until the user snoozes or dismisses it.
-    int openDialogCount = 0;
-
-    // Headless sound notifications still in flight. Like a dialog, the alarm was already moved to
-    // the engine's fired set, so without this the process would quit and tear down the bus before
-    // the asynchronous notification is delivered. Held until KNotification reports it closed.
-    int pendingSoundCount = 0;
+    // Owns alarm/reminder presentation and tracks whether anything is still on screen.
+    AlarmPresenter presenter(engine);
 
     // Exit when there is nothing left to do; D-Bus activation restarts the helper on demand.
     // Drop the service name first so a call racing the exit is routed to a freshly activated
     // helper instead of this process's torn-down object tree.
     const auto tryQuit = [&]() {
-        if (engine.isEmpty() && openDialogCount == 0 && pendingSoundCount == 0) {
+        if (engine.isEmpty() && !presenter.isPresenting()) {
             QDBusConnection::sessionBus().unregisterService(s_serviceName);
             app.quit();
         }
     };
 
-    // Show an alarm dialog (or, where no window is possible, a one-shot sound) and keep it
-    // tracked so tryQuit() never ends the process over an alarm the user is still acting on.
-    const auto showAlarmDialog = [&](const Remindme::TimerInfo &timer, bool expired) {
-        // Headless contexts (e.g. CI, no desktop) cannot show a window. An expired timer was
-        // already removed by the engine, so the alarm degrades to a single sound notification;
-        // a manually requested reminder is simply a no-op.
-        if (QGuiApplication::platformName() == QLatin1String("offscreen")) {
-            if (expired) {
-                KNotification *sound = new KNotification(QStringLiteral("remindme"), KNotification::CloseOnTimeout, &engine);
-                sound->setTitle(i18n("Timer finished"));
-                sound->setText(timer.message.isEmpty() ? i18n("Your timer has finished") : timer.message);
-                // Count the sound before sending: sendEvent() is asynchronous, and the
-                // commitTimers() count signal that reaches tryQuit() runs first.
-                ++pendingSoundCount;
-                // KNotification auto-deletes on close, so closed() is the last chance to react.
-                QObject::connect(sound, &KNotification::closed, &app, [&pendingSoundCount, &tryQuit]() {
-                    if (--pendingSoundCount == 0) {
-                        tryQuit();
-                    }
-                });
-                sound->sendEvent();
-            }
-            return;
-        }
-
-        // The dialog shows the message and, for the expiry alarm, plays a looping alarm sound
-        // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
-        auto *dialog = new RemindmeAlarmDialog(timer, expired, engine.nowMs());
-        ++openDialogCount;
-        QObject::connect(dialog, &RemindmeAlarmDialog::snoozeRequested, &engine, [&engine, timer, expired]() {
-            if (expired) {
-                engine.rearmExpiredTimer(timer);
-            } else {
-                engine.Snooze(timer.id);
-            }
-        });
-        // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; Cancel
-        // handles both. Closing the window without a button is a no-op.
-        QObject::connect(dialog, &RemindmeAlarmDialog::dismissRequested, &engine, [&engine, timer]() {
-            engine.Cancel(timer.id);
-        });
-        // The window is WA_DeleteOnClose, so closing it may be the last thing holding the
-        // process up (e.g. a cancel-by-dismissal leaves no timers); re-check idleness.
-        QObject::connect(dialog, &QObject::destroyed, &app, [&app, &openDialogCount, &tryQuit]() {
-            if (--openDialogCount == 0) {
-                tryQuit();
-            }
-        });
-        dialog->show();
-        // This process runs in the background, so the dialog could otherwise map behind the
-        // active window (especially on Wayland); an alarm you cannot see defeats the purpose.
-        dialog->raise();
-        dialog->activateWindow();
-    };
-
-    QObject::connect(&engine, &RemindmeEngine::timerExpired, &engine, [&showAlarmDialog](const Remindme::TimerInfo &timer) {
-        showAlarmDialog(timer, /*expired=*/true);
+    QObject::connect(&engine, &RemindmeEngine::timerExpired, &presenter, [&presenter](const Remindme::TimerInfo &timer) {
+        presenter.present(timer, /*expired=*/true);
     });
-    QObject::connect(&engine, &RemindmeEngine::showReminderRequested, &engine, [&showAlarmDialog](const Remindme::TimerInfo &timer) {
-        showAlarmDialog(timer, /*expired=*/false);
+    QObject::connect(&engine, &RemindmeEngine::showReminderRequested, &presenter, [&presenter](const Remindme::TimerInfo &timer) {
+        presenter.present(timer, /*expired=*/false);
     });
+    // The last alarm window or in-flight sound going away may have removed the last reason to stay
+    // alive (e.g. a cancel-by-dismissal, whose count change fired while the window was still
+    // open), so re-check idleness.
+    QObject::connect(&presenter, &AlarmPresenter::presentationsFinished, &app, tryQuit);
     // Whenever the engine's timer set changes (create, cancel, expiry, snooze), exit when
     // nothing remains; the engine persists its full state on every change first.
     QObject::connect(&engine, &RemindmeEngine::timerCountChanged, &app, tryQuit);
 
     // Re-present alarms that fired before this process started (e.g. the session ended while a
     // dialog was open). The engine loaded them from the persisted "fired" entries; showing them
-    // now also bumps openDialogCount/pendingSoundCount so tryQuit() cannot drop them.
+    // now also keeps the presenter busy so tryQuit() cannot drop them.
     engine.replayPendingAlarms();
 
     new RemindmeAdaptor(&engine);
