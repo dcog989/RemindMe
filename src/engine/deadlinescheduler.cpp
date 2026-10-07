@@ -22,8 +22,8 @@ qint64 DeadlineScheduler::nowMs() const
 
 DeadlineScheduler *createDeadlineScheduler(QObject *parent)
 {
-    // The timerfd path is only correct for the real wall clock; where timerfd is unavailable
-    // (non-Linux) the monotonic QTimer plus wall-clock sweep fallback is used instead.
+    // The timerfd path is only correct for the real wall clock; where timerfd is unavailable the
+    // monotonic QTimer plus wall-clock sweep fallback is used instead.
     auto *timerfd = new TimerfdDeadlineScheduler(parent);
     if (timerfd->isValid()) {
         return timerfd;

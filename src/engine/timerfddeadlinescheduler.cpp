@@ -3,16 +3,13 @@
 #include <QDebug>
 #include <QSocketNotifier>
 
-#ifdef Q_OS_LINUX
 #include <cerrno>
 #include <sys/timerfd.h>
 #include <unistd.h>
-#endif
 
 TimerfdDeadlineScheduler::TimerfdDeadlineScheduler(QObject *parent)
     : DeadlineScheduler({}, parent)
 {
-#ifdef Q_OS_LINUX
     m_fd = timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
     if (m_fd < 0) {
         return;
@@ -28,16 +25,13 @@ TimerfdDeadlineScheduler::TimerfdDeadlineScheduler(QObject *parent)
         }
         Q_EMIT deadlineReached();
     });
-#endif
 }
 
 TimerfdDeadlineScheduler::~TimerfdDeadlineScheduler()
 {
-#ifdef Q_OS_LINUX
     if (m_fd >= 0) {
         ::close(m_fd);
     }
-#endif
 }
 
 bool TimerfdDeadlineScheduler::isValid() const
@@ -47,7 +41,6 @@ bool TimerfdDeadlineScheduler::isValid() const
 
 void TimerfdDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadlineMs)
 {
-#ifdef Q_OS_LINUX
     if (m_fd < 0) {
         return;
     }
@@ -61,7 +54,4 @@ void TimerfdDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadlin
     if (timerfd_settime(m_fd, TFD_TIMER_ABSTIME, &ts, nullptr) != 0) {
         qWarning() << "Could not arm timerfd, errno" << errno;
     }
-#else
-    Q_UNUSED(nextDeadlineMs);
-#endif
 }
