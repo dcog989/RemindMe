@@ -27,7 +27,7 @@ Trigger words: `remindme` or `rme`.
 | Create timer            | `rme 5`, `rme 3h msg`  |
 | List active timers      | `rme list`             |
 | Cancel by id            | `rme cancel 3`         |
-| Cancel by message       | `rme cancel meeting` (case-sensitive) |
+| Cancel by message       | `rme cancel meeting`   |
 | List timers to cancel   | `rme cancel`           |
 | Usage / help            | `rme`                  |
 
