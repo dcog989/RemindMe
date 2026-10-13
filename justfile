@@ -146,8 +146,25 @@ package:
 
 # Rebuild, reinstall and relaunch KRunner with the local runner
 reload preset="user":
+    #!/usr/bin/env bash
+    set -euo pipefail
     cmake --build --preset {{preset}}
     cmake --install build/{{preset}}
-    @kquitapp6 krunner || true
-    @pkill -f 'libexec/kf6/[k]runner-remindme' || true
-    @setsid -f krunner --daemon
+    # Drop the helper from an older install so the freshly installed binary is the one activated.
+    pkill -f 'libexec/kf6/[k]runner-remindme' || true
+    if systemctl --user cat plasma-krunner.service >/dev/null 2>&1; then
+        # Plasma 6 runs KRunner as a user service. Restarting it yields the single instance that
+        # owns org.kde.krunner; hand-starting another krunner instead makes the two race for the
+        # name, and the loser segfaults on exit (plasma-krunner.service has Restart=no, so it
+        # then stays dead).
+        pkill -f '[k]runner --daemon' || true
+        systemctl --user reset-failed plasma-krunner.service || true
+        systemctl --user restart plasma-krunner.service
+        systemctl --user is-active --quiet plasma-krunner.service || {
+            echo "krunner did not start; check: journalctl --user -u plasma-krunner.service" >&2
+            exit 1
+        }
+    else
+        kquitapp6 krunner || true
+        setsid -f krunner --daemon
+    fi
