@@ -36,13 +36,13 @@ if [ ! -f "$manifest" ]; then
     exit 1
 fi
 
-# Remove deepest paths first so emptied directories can be pruned afterwards.
-# shellcheck disable=SC2013
-for file in $(sort -r "$manifest"); do
+# Remove deepest paths first so emptied directories can be pruned afterwards. Read line by line
+# rather than word-splitting, so a path containing spaces is removed whole and never split.
+while IFS= read -r file; do
     [ -n "$file" ] || continue
     # shellcheck disable=SC2086
     $sudo rm -f "$file"
-done
+done < <(sort -r "$manifest")
 
 echo "==> Removed installed files ($preset)"
 if command -v kquitapp6 >/dev/null 2>&1; then
