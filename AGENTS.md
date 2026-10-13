@@ -43,7 +43,7 @@ remindme/
 │   └── krunner-remindme.notifyrc
 ├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
-├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh
+├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh / preset-args.sh
 │   └── kns/                             # first-run build launcher for the store package
 └── README.md
 ```

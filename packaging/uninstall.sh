@@ -5,30 +5,15 @@
 #   packaging/uninstall.sh            # user install (~/.local)
 #   packaging/uninstall.sh --system   # system install (/usr, uses sudo)
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
+
+# Defaults; the shared parser (packaging/preset-args.sh) overrides them from the arguments.
 preset="user"
 sudo=""
-for arg in "$@"; do
-    case "$arg" in
-        --system)
-            preset="system"
-            sudo="sudo"
-            ;;
-        --user)
-            preset="user"
-            sudo=""
-            ;;
-        -h|--help)
-            sed -n '3,8p' "$0"
-            exit 0
-            ;;
-        *)
-            echo "unknown option: $arg" >&2
-            exit 2
-            ;;
-    esac
-done
+# shellcheck source=preset-args.sh
+source "$script_dir/preset-args.sh" "$@"
 
 manifest="build/$preset/install_manifest.txt"
 if [ ! -f "$manifest" ]; then
@@ -49,5 +34,5 @@ if command -v kquitapp6 >/dev/null 2>&1; then
     kquitapp6 krunner >/dev/null 2>&1 || true
 fi
 if command -v krunner >/dev/null 2>&1; then
-    krunner >/dev/null 2>&1 &
+    setsid -f krunner --daemon >/dev/null 2>&1
 fi

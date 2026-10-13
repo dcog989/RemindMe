@@ -5,30 +5,15 @@
 #   packaging/install.sh            # install into ~/.local (no sudo)
 #   packaging/install.sh --system   # install into /usr (uses sudo)
 set -euo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$script_dir/.."
+
+# Defaults; the shared parser (packaging/preset-args.sh) overrides them from the arguments.
 preset="user"
 sudo=""
-for arg in "$@"; do
-    case "$arg" in
-        --system)
-            preset="system"
-            sudo="sudo"
-            ;;
-        --user)
-            preset="user"
-            sudo=""
-            ;;
-        -h|--help)
-            sed -n '3,9p' "$0"
-            exit 0
-            ;;
-        *)
-            echo "unknown option: $arg" >&2
-            exit 2
-            ;;
-    esac
-done
+# shellcheck source=preset-args.sh
+source "$script_dir/preset-args.sh" "$@"
 
 cmake --preset "$preset"
 cmake --build --preset "$preset"
@@ -40,6 +25,6 @@ if command -v kquitapp6 >/dev/null 2>&1; then
     kquitapp6 krunner >/dev/null 2>&1 || true
 fi
 if command -v krunner >/dev/null 2>&1; then
-    krunner >/dev/null 2>&1 &
+    setsid -f krunner --daemon >/dev/null 2>&1
 fi
 echo "Try: rme 5  |  rme list  |  rme cancel 3"
