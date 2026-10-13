@@ -2,7 +2,6 @@
 
 #include <QDBusMetaType>
 #include <QDateTime>
-#include <QLocale>
 #include <QStringList>
 
 #include <KFormat>
@@ -54,19 +53,6 @@ RemoteMatch makeMatch(const QString &id, const QString &text, qreal relevance)
     match.relevance = relevance;
     match.properties.insert(QStringLiteral("actions"), QStringList());
     return match;
-}
-
-QString formatReminderTime(const QDateTime &deadline, bool capitalizeDay = true)
-{
-    const QDate today = QDate::currentDate();
-    const QString time = QLocale().toString(deadline.time(), QLocale::ShortFormat);
-    if (deadline.date() == today) {
-        return capitalizeDay ? i18n("Today at %1", time) : i18n("today at %1", time);
-    }
-    if (deadline.date() == today.addDays(1)) {
-        return capitalizeDay ? i18n("Tomorrow at %1", time) : i18n("tomorrow at %1", time);
-    }
-    return i18n("%1 at %2", QLocale().toString(deadline.date(), QLocale::ShortFormat), time);
 }
 
 std::optional<QString> stripPrefix(const QString &value, const QString &prefix)
@@ -235,7 +221,7 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
     const QString durationText = duration.seconds >= 3600 ? KFormat().formatSpelloutDuration(static_cast<qint64>((duration.seconds + 30) / 60) * 60 * 1000)
                                                           : KFormat().formatSpelloutDuration(durationMs);
     QString text = i18n("Set timer for %1", durationText).toHtmlEscaped();
-    text += QStringLiteral("<br>") + i18n("Reminder %1", formatReminderTime(deadline, false)).toHtmlEscaped();
+    text += QStringLiteral("<br>") + i18n("Reminder %1", Remindme::formatReminderTime(deadline, false)).toHtmlEscaped();
     if (!duration.message.isEmpty()) {
         text += QStringLiteral("<br>") + duration.message.toHtmlEscaped();
     }
@@ -332,7 +318,7 @@ QString RemindmeAdaptor::timerText(const Remindme::TimerInfo &timer) const
 {
     // The id and reminder time share the first line; the message goes on its own line so long
     // text does not truncate the row. krunner renders the <br> as rich text (multiline).
-    const QString reminderTime = formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline));
+    const QString reminderTime = Remindme::formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline));
     QString text = i18n("#%1 %2", timer.id, reminderTime);
     if (!timer.message.isEmpty()) {
         text += QStringLiteral("<br>") + timer.message.toHtmlEscaped();

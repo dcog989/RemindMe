@@ -1,8 +1,12 @@
 #include "remindmetime.h"
 
+#include <QDate>
+#include <QDateTime>
 #include <QList>
 #include <QLocale>
 #include <QtMath>
+
+#include <KLocalizedString>
 
 namespace Remindme
 {
@@ -122,6 +126,19 @@ Duration parseDurationAndMessage(const QString &input)
         result.message = message;
     }
     return result;
+}
+
+QString formatReminderTime(const QDateTime &deadline, bool capitalizeDay)
+{
+    const QDate today = QDate::currentDate();
+    const QString time = QLocale().toString(deadline.time(), QLocale::ShortFormat);
+    if (deadline.date() == today) {
+        return capitalizeDay ? i18n("Today at %1", time) : i18n("today at %1", time);
+    }
+    if (deadline.date() == today.addDays(1)) {
+        return capitalizeDay ? i18n("Tomorrow at %1", time) : i18n("tomorrow at %1", time);
+    }
+    return i18n("%1 at %2", QLocale().toString(deadline.date(), QLocale::ShortFormat), time);
 }
 
 } // namespace Remindme

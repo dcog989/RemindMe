@@ -10,7 +10,7 @@ set(REMINDME_SCHEDULER_SOURCES
     ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
 )
 
-ecm_add_test(remindmetimetest.cpp TEST_NAME remindmetimetest LINK_LIBRARIES Qt6::Test)
+ecm_add_test(remindmetimetest.cpp TEST_NAME remindmetimetest LINK_LIBRARIES Qt6::Test KF6::I18n)
 target_sources(remindmetimetest PRIVATE ${REMINDME_ENGINE_DIR}/remindmetime.cpp)
 target_include_directories(remindmetimetest PRIVATE ${REMINDME_ENGINE_DIR})
 

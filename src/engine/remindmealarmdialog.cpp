@@ -14,23 +14,10 @@
 #include "remindmealarmnotification.h"
 #include "remindmealarmsound.h"
 #include "remindmeengine.h"
+#include "remindmetime.h"
 
 namespace
 {
-// Mirrors the KRunner list wording so the reminder body reads like the row the user picked.
-QString formatDue(const QDateTime &deadline)
-{
-    const QDate today = QDate::currentDate();
-    const QString time = QLocale().toString(deadline.time(), QLocale::ShortFormat);
-    if (deadline.date() == today) {
-        return i18n("today at %1", time);
-    }
-    if (deadline.date() == today.addDays(1)) {
-        return i18n("tomorrow at %1", time);
-    }
-    return i18n("%1 at %2", QLocale().toString(deadline.date(), QLocale::ShortFormat), time);
-}
-
 // Text for the "overdue" line shown when an expired timer surfaces later than its deadline (e.g.
 // the system was off at the time). Missing the deadline by less than the notice threshold is
 // normal scheduling jitter, so an empty string is returned for a timely alarm.
@@ -83,7 +70,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
             messageLabel->setWordWrap(true);
             layout->addWidget(messageLabel);
         }
-        auto *dueLabel = new QLabel(i18n("Due %1.", formatDue(QDateTime::fromMSecsSinceEpoch(timer.deadline))), this);
+        auto *dueLabel = new QLabel(i18n("Due %1.", Remindme::formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline), false)), this);
         dueLabel->setWordWrap(true);
         layout->addWidget(dueLabel);
     }
