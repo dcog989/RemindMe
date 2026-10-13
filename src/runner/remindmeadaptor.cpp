@@ -151,6 +151,10 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
                 qputenv("XDG_ACTIVATION_TOKEN", activationToken.toUtf8());
             }
             m_engine->show(id);
+            // The token is single-use. Clear the variable once the window has been shown (Qt reads
+            // and unsets it during that synchronous call), so a later activation cannot pick up a
+            // spent token and fail to focus.
+            qunsetenv("XDG_ACTIVATION_TOKEN");
         }
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
         m_engine->cancelByMessage(*rest);
