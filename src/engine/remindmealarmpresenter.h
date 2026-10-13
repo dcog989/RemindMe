@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QHash>
 #include <QObject>
+#include <QPointer>
 
 #include "remindmealarmdialog.h"
 #include "remindmeengine.h"
@@ -34,6 +36,10 @@ private:
     void onSoundClosed();
 
     RemindmeEngine &m_engine;
+    // Open alarm windows keyed by timer id, so a second presentation for the same timer replaces
+    // its window instead of stacking a duplicate. QPointer nulls itself when the WA_DeleteOnClose
+    // dialog is destroyed.
+    QHash<int, QPointer<RemindmeAlarmDialog>> m_dialogs;
     // An expired timer was already moved to the engine's fired set, so the open window alone keeps
     // the process alive until the user snoozes or dismisses it.
     int m_openDialogCount = 0;

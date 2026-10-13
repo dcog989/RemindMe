@@ -37,6 +37,10 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     // The dialog shows the message and, for the expiry alarm, plays a looping alarm sound
     // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
     auto *dialog = new RemindmeAlarmDialog(timer, kind, m_engine.nowMs());
+    const QPointer<RemindmeAlarmDialog> previous = m_dialogs.value(timer.id);
+    m_dialogs.insert(timer.id, dialog);
+    // Count before closing the previous window: its later destruction decrements the count again,
+    // so the presenter never reports "nothing on screen" while this timer still has a window.
     ++m_openDialogCount;
     connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer]() {
         m_engine.snooze(timer);
@@ -54,6 +58,12 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     // window (especially on Wayland); an alarm you cannot see defeats the purpose.
     dialog->raise();
     dialog->activateWindow();
+
+    // A reminder opened from "rme list" can be superseded by the expiry alarm for the same timer;
+    // close the earlier window so one timer never has two windows at once.
+    if (previous) {
+        previous->close();
+    }
 }
 
 void AlarmPresenter::presentSound(const Remindme::TimerInfo &timer)
