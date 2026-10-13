@@ -58,6 +58,7 @@ Trigger words: `remindme` or `rme`.
 - `just pot` — extract translatable strings into `po/krunner_remindme.pot`
 - `just reload` — rebuild, reinstall and relaunch KRunner
 - `just package` — package for the KDE Store
+- `just clean`
 
 ### Install from source
 
