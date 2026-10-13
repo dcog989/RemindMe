@@ -1,11 +1,13 @@
 
 set(REMINDME_ENGINE_DIR ${CMAKE_SOURCE_DIR}/src/engine)
 
-# The deadline scheduler the engine delegates waiting to; the engine test links it because the
-# engine builds a scheduler by default even when the test injects its own.
+# The deadline scheduler the engine delegates waiting to; the engine builds a scheduler by default
+# even when the test injects its own. The QTimer scheduler is linked because the factory falls back
+# to it when the timerfd cannot be created.
 set(REMINDME_SCHEDULER_SOURCES
     ${REMINDME_ENGINE_DIR}/deadlinescheduler.cpp
     ${REMINDME_ENGINE_DIR}/timerfddeadlinescheduler.cpp
+    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
 )
 
 ecm_add_test(remindmetimetest.cpp TEST_NAME remindmetimetest LINK_LIBRARIES Qt6::Test)
@@ -20,10 +22,8 @@ target_sources(remindmeenginetest PRIVATE
 target_include_directories(remindmeenginetest PRIVATE ${REMINDME_ENGINE_DIR})
 
 ecm_add_test(deadlineschedulertest.cpp TEST_NAME deadlineschedulertest LINK_LIBRARIES Qt6::Test)
-# The QTimer scheduler is test-only (not in the production target), so this test compiles it.
 target_sources(deadlineschedulertest PRIVATE
     ${REMINDME_SCHEDULER_SOURCES}
-    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
 )
 target_include_directories(deadlineschedulertest PRIVATE ${REMINDME_ENGINE_DIR})
 

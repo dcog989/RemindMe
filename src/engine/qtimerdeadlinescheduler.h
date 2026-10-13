@@ -6,10 +6,10 @@
 
 #include <optional>
 
-// QTimer-based scheduler used only by the tests: a single-shot QTimer for the exact wait plus a
-// periodic wall-clock sweep. The sweep matters because a monotonic QTimer pauses during suspend,
-// so re-reading the wall clock bounds how late an alarm can sound after resume. Tests drive it
-// through an injected clock.
+// QTimer-based scheduler: a single-shot QTimer for the exact wait plus a periodic wall-clock sweep.
+// The sweep matters because a monotonic QTimer pauses during suspend, so re-reading the wall clock
+// bounds how late an alarm can sound after resume. Used as the fallback when the production timerfd
+// cannot be created; tests drive it through an injected clock.
 class QTimerDeadlineScheduler final : public DeadlineScheduler
 {
     Q_OBJECT

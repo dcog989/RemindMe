@@ -7,6 +7,8 @@ add_executable(krunner-remindme
     engine/deadlinescheduler.h
     engine/timerfddeadlinescheduler.cpp
     engine/timerfddeadlinescheduler.h
+    engine/qtimerdeadlinescheduler.cpp
+    engine/qtimerdeadlinescheduler.h
     engine/remindmeengine.cpp
     engine/remindmeengine.h
     engine/timerinfo.h

@@ -31,6 +31,7 @@ private:
     std::function<qint64()> m_clock;
 };
 
-// Builds the production scheduler: a realtime timerfd, which fires across suspend. The returned
+// Builds the production scheduler: a realtime timerfd, which fires across suspend. If the timerfd
+// cannot be created it falls back to the QTimer scheduler, so deadlines still fire. The returned
 // scheduler is parented to parent.
 DeadlineScheduler *createDeadlineScheduler(QObject *parent = nullptr);

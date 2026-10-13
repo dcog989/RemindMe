@@ -12,6 +12,7 @@ TimerfdDeadlineScheduler::TimerfdDeadlineScheduler(QObject *parent)
 {
     m_fd = timerfd_create(CLOCK_REALTIME, TFD_NONBLOCK | TFD_CLOEXEC);
     if (m_fd < 0) {
+        qWarning() << "Could not create timerfd, errno" << errno;
         return;
     }
     m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
@@ -32,6 +33,11 @@ TimerfdDeadlineScheduler::~TimerfdDeadlineScheduler()
     if (m_fd >= 0) {
         ::close(m_fd);
     }
+}
+
+bool TimerfdDeadlineScheduler::isUsable() const
+{
+    return m_fd >= 0;
 }
 
 void TimerfdDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadlineMs)

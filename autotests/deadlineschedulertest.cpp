@@ -7,7 +7,7 @@
 
 #include <optional>
 
-// The engine tests drive expiry through a manual scheduler; these tests cover the test-only QTimer
+// The engine tests drive expiry through a manual scheduler; these tests cover the QTimer fallback
 // scheduler, notably that its wall-clock sweep notices a clock jump and that disarming stops it
 // from waking.
 class DeadlineSchedulerTest : public QObject
