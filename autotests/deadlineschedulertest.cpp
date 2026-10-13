@@ -1,6 +1,8 @@
 #include "deadlinescheduler.h"
 #include "qtimerdeadlinescheduler.h"
+#include "timerfddeadlinescheduler.h"
 
+#include <QDateTime>
 #include <QScopedPointer>
 #include <QSignalSpy>
 #include <QTest>
@@ -8,8 +10,8 @@
 #include <optional>
 
 // The engine tests drive expiry through a manual scheduler; these tests cover the QTimer fallback
-// scheduler, notably that its wall-clock sweep notices a clock jump and that disarming stops it
-// from waking.
+// (its wall-clock sweep notices a clock jump and disarming stops it waking) and the production
+// timerfd scheduler (a deadline crossed while suspended fires immediately).
 class DeadlineSchedulerTest : public QObject
 {
     Q_OBJECT
@@ -54,6 +56,22 @@ private Q_SLOTS:
         fakeNow += 60 * 1000;
         QTest::qWait(700); // longer than one sweep interval
         QCOMPARE(spy.count(), 0);
+    }
+
+    // The production scheduler: an absolute deadline already crossed (e.g. while the machine was
+    // suspended) must fire immediately. That is what CLOCK_REALTIME plus TFD_TIMER_ABSTIME buys; a
+    // relative wait would instead count down from resume and fire late.
+    void testTimerfdFiresForPastDeadline()
+    {
+        TimerfdDeadlineScheduler scheduler;
+        if (!scheduler.isUsable()) {
+            QSKIP("timerfd is unavailable in this environment");
+        }
+        QSignalSpy spy(&scheduler, &DeadlineScheduler::deadlineReached);
+
+        scheduler.setNextDeadline(QDateTime::currentMSecsSinceEpoch() - 1000);
+
+        QTRY_COMPARE_WITH_TIMEOUT(spy.count(), 1, 5000);
     }
 };
 
