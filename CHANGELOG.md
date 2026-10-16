@@ -2,6 +2,12 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.3.0 - 2026-10-16
+#### Features
+- (**packaging**) ship a prebuilt binary in the store payload - (0fc4521) - dcog989
+
+- - -
+
 ## v0.2.11 - 2026-10-16
 #### CI
 - retry the pacman transaction when archive.archlinux.org stalls - (b83990b) - dcog989

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.29)
 
-project(remindme VERSION 0.2.11 LANGUAGES CXX)
+project(remindme VERSION 0.3.0 LANGUAGES CXX)
 
 # Single source of truth for the D-Bus service KRunner auto-activates: the generated service file,
 # the runner .desktop metadata and the C++ registration (compile definition) all derive from it.
