@@ -29,10 +29,17 @@ jobs:
         run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm --needed \
-            base-devel cmake ninja git \
-            qt6-base krunner kcoreaddons ki18n knotifications kconfig \
-            extra-cmake-modules
+          # archive.archlinux.org intermittently stalls and pacman then aborts the whole
+          # transaction ("Operation too slow"). Partial downloads resume, so retry it.
+          for attempt in 1 2 3; do
+            pacman -Syu --noconfirm --needed \
+              base-devel cmake ninja git \
+              qt6-base krunner kcoreaddons ki18n knotifications kconfig \
+              extra-cmake-modules && exit 0
+            printf 'pacman attempt %s failed; retrying\n' "$attempt" >&2
+            sleep 20
+          done
+          exit 1
       - uses: actions/checkout@v7
       - name: Mark the workspace as a safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
@@ -48,8 +55,14 @@ jobs:
         run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
       - name: Install tools
         run: |
-          pacman -Syu --noconfirm --needed \
-            git just clang typos shellcheck yamllint editorconfig-checker
+          # Same archive.archlinux.org stall as the build job; retry the transaction.
+          for attempt in 1 2 3; do
+            pacman -Syu --noconfirm --needed \
+              git just clang typos shellcheck yamllint editorconfig-checker && exit 0
+            printf 'pacman attempt %s failed; retrying\n' "$attempt" >&2
+            sleep 20
+          done
+          exit 1
       - uses: actions/checkout@v7
       - name: Mark the workspace as a safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
