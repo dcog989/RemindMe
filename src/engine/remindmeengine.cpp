@@ -199,7 +199,7 @@ void RemindmeEngine::saveToDisk() const
     }
     // Owner-only: the file holds reminder text, which other local users should not be able to read.
     file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
-    if (file.write(QJsonDocument(array).toJson(QJsonDocument::Indented)) < 0) {
+    if (file.write(QJsonDocument(array).toJson(QJsonDocument::Compact)) < 0) {
         qWarning() << "Could not write timer state file" << path << file.errorString();
         file.cancelWriting();
         return;
