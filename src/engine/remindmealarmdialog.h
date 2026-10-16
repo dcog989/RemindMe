@@ -34,6 +34,7 @@ public:
 Q_SIGNALS:
     void snoozeRequested();
     // Emitted when "Dismiss" acknowledges an expired alarm or "Cancel timer" cancels a
-    // still-active one. Closing the window (X) emits nothing.
+    // still-active one. Closing an expiry window (X or Esc) acknowledges it too; closing a
+    // still-active reminder is a no-op, so the timer keeps running.
     void dismissRequested();
 };

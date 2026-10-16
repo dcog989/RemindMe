@@ -90,8 +90,13 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     connect(dismissButton, &QPushButton::clicked, this, &QDialog::accept);
     // "Cancel timer" (still-active) cancels the timer; "Dismiss" (expired) acknowledges the
     // alarm. Both must clear engine state, otherwise a dismissed alarm would be replayed on the
-    // next start. Closing with the window manager bypasses this and is deliberately a no-op.
+    // next start.
     connect(dismissButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::dismissRequested);
+    // Closing an expired alarm (window manager or Esc) acknowledges it too; otherwise the alarm
+    // would be left pending while the process exits, and only shown again on the next activation.
+    if (isExpiry) {
+        connect(this, &QDialog::rejected, this, &RemindmeAlarmDialog::dismissRequested);
+    }
 
     // The expiry alarm loops the "remindme" sound until the dialog closes; AlarmSound is parented
     // to the dialog, so dismissing or snoozing (which destroys it) stops the sound.

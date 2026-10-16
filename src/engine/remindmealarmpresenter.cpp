@@ -46,7 +46,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
         m_engine.snooze(timer);
     });
     // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; cancel handles
-    // both. Closing the window without a button is a no-op.
+    // both. The dialog also emits this when an expiry window is closed (X or Esc); a closed
+    // reminder window emits nothing and leaves its timer running.
     connect(dialog, &RemindmeAlarmDialog::dismissRequested, this, [this, timer]() {
         m_engine.cancel(timer.id);
     });
@@ -60,8 +61,10 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     dialog->activateWindow();
 
     // A reminder opened from "rme list" can be superseded by the expiry alarm for the same timer;
-    // close the earlier window so one timer never has two windows at once.
+    // close the earlier window so one timer never has two windows at once. Detach first, so this
+    // programmatic close is not taken for the user acknowledging the replacement.
     if (previous) {
+        disconnect(previous.data(), &RemindmeAlarmDialog::dismissRequested, this, nullptr);
         previous->close();
     }
 }
