@@ -21,13 +21,13 @@ if [ ! -f "$manifest" ]; then
     exit 1
 fi
 
-# Remove deepest paths first so emptied directories can be pruned afterwards. Read line by line
-# rather than word-splitting, so a path containing spaces is removed whole and never split.
+# Remove each recorded path. Read line by line rather than word-splitting, so a path containing
+# spaces is removed whole and never split. Emptied directories are left in place.
 while IFS= read -r file; do
     [ -n "$file" ] || continue
     # shellcheck disable=SC2086
     $sudo rm -f "$file"
-done < <(sort -r "$manifest")
+done < "$manifest"
 
 # The engine's runtime autostart entry is not in the install manifest; drop it too, so a login
 # does not try to run the removed binary.
