@@ -18,10 +18,17 @@ include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(ECMGenerateDBusServiceFile)
 include(ECMAddTests)
+include(CheckPIESupported)
 include(FeatureSummary)
 
 find_package(Qt6 6.9 REQUIRED COMPONENTS Core DBus Widgets)
 find_package(KF6 6.9 REQUIRED COMPONENTS CoreAddons I18n Notifications Config)
+
+# Without this, POSITION_INDEPENDENT_CODE adds -fPIE but not -pie to the link line, and a non-PIE
+# binary links copy relocations against Qt's protected data symbols, which the loader rejects
+# (GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS) when it was built against another distribution's
+# Qt than the one it runs with.
+check_pie_supported()
 
 # Compile any po/<lang>/*.po to .mo and install them under KDE_INSTALL_LOCALEDIR. No translations
 # are shipped yet; dropping gettext catalogues into po/ is enough to enable a locale. Set
