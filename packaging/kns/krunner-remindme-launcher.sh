@@ -2,7 +2,7 @@
 #
 # D-Bus activation entry point for a "Get New Plugins" install. The store payload
 # ships sources, so the first activation configures, builds and installs the plugin
-# (into ~/.local, no sudo); later activations start the binary directly.
+# (into ~/.local, no sudo); later activations start the installed binary directly.
 #
 # Activation happens without a terminal, so build output goes to $PROJECTDIR/kns-build.log.
 # A first build can outlast the bus activation timeout (~25s); that one query fails, the retry
@@ -11,8 +11,15 @@ set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 build_dir="$project_dir/build/kns"
-binary="$build_dir/krunner-remindme"
+manifest="$build_dir/install_manifest.txt"
 log="$project_dir/kns-build.log"
+
+# The installed helper, read from the manifest cmake --install writes; it is the only installed
+# file whose path ends in this name. Run it, not the build-tree copy, so the autostart entry the
+# helper writes points at the install prefix rather than at this download folder.
+installed_binary() {
+    grep -m1 -E '/krunner-remindme$' "$manifest" 2>/dev/null || true
+}
 
 build() {
     echo "==> Configuring remindme"
@@ -26,7 +33,8 @@ build() {
     cmake --install "$build_dir" || return 1
 }
 
-if [ ! -x "$binary" ]; then
+binary="$(installed_binary)"
+if [ -z "$binary" ] || [ ! -x "$binary" ]; then
     if ! command -v cmake >/dev/null 2>&1; then
         echo "remindme: cmake is required for the first run; see README.md for the build dependencies" >&2
         exit 1
@@ -37,7 +45,8 @@ if [ ! -x "$binary" ]; then
     mkdir -p "$build_dir"
     if ! (
         flock 9
-        if [ -x "$binary" ]; then
+        candidate="$(installed_binary)"
+        if [ -n "$candidate" ] && [ -x "$candidate" ]; then
             exit 0
         fi
         build >"$log" 2>&1
@@ -45,6 +54,12 @@ if [ ! -x "$binary" ]; then
         echo "remindme: build failed, see $log" >&2
         exit 1
     fi
+    binary="$(installed_binary)"
+fi
+
+if [ -z "$binary" ] || [ ! -x "$binary" ]; then
+    echo "remindme: the install did not produce the helper binary" >&2
+    exit 1
 fi
 
 exec "$binary"
