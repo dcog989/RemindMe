@@ -2,18 +2,18 @@
 #
 # Build the KRunner "Get New Plugins" payload. Run from any directory; output lands in dist/.
 #
-# The archive ships a binary built for each architecture plus the files a normal install places,
-# in the layout packaging/kns/krunner-remindme-launcher.sh copies from. It is built in a
-# container so the target machine needs no compiler: the binary links only the Qt6/KF6 libraries
-# every Plasma 6 desktop running KRunner already has. Raise IMAGE as its packages age; that also
-# raises the glibc, Qt and KF6 the binary requires.
+# The archive ships a binary built in the container plus the files a normal install places, in
+# the layout packaging/kns/krunner-remindme-launcher.sh copies from, so the target machine needs
+# no compiler: the binary links only the Qt6/KF6 libraries every Plasma 6 desktop running KRunner
+# already has. Raise IMAGE as its packages age; that also raises the glibc, Qt and KF6 the binary
+# requires.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$root"
 
 image="${IMAGE:-fedora:43}"
-arches="${ARCHES:-x86_64 aarch64}"
+arches="${ARCHES:-x86_64}"
 runtime="${RUNTIME:-$(command -v podman || command -v docker || true)}"
 
 for file in krunner-plugininstallerrc packaging/kns/krunner-remindme-launcher.sh; do
