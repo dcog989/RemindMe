@@ -2,6 +2,50 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.2.9 - 2026-10-16
+#### Bug Fixes
+- (**alarm**) acknowledge an expiry alarm when its window is closed - (2f076fe) - dcog989
+- (**engine**) keep every corrupt-state backup instead of one slot - (f434ef8) - dcog989
+- (**engine**) drop alarm dialog hash entry when its window is destroyed - (56779b6) - dcog989
+- (**engine**) write the timer state file owner-only - (cc4e617) - dcog989
+- (**engine**) show the plugin's own icon in the alarm window, task manager and notifications - (cec62f3) - dcog989
+- (**engine**) give the alarm window its app icon and task manager entry - (8c4b71b) - dcog989
+- (**engine**) show only one alarm window per timer - (6325dd7) - dcog989
+- (**engine**) keep timers firing when timerfd creation fails - (5375c4c) - dcog989
+- (**logo**) tweak logo colors - (a49eec7) - dcog989
+- (**packaging**) correct the uninstall comment and drop the dead sort - (9971f9f) - dcog989
+- (**packaging**) run the installed helper, not the build-tree copy - (2491795) - dcog989
+- (**packaging**) remove the autostart entry on uninstall - (03baf2e) - dcog989
+- (**packaging**) serialise the first-activation build with a lock - (a184eb2) - dcog989
+- (**packaging**) restart KRunner through its user service - (7891c46) - dcog989
+- (**packaging**) detach the KRunner restart and share option parsing - (222d5b2) - dcog989
+- (**packaging**) stop uninstall from word-splitting install paths - (8981e8a) - dcog989
+- (**reload**) restart plasma-krunner.service instead of launching a second krunner - (abbc730) - dcog989
+- (**runner**) use the plugin's own icon for KRunner matches - (1d22133) - dcog989
+- (**runner**) clear the single-use activation token after showing - (22b0789) - dcog989
+#### Performance
+- (**engine**) write the timer state file compact instead of indented - (562d029) - dcog989
+#### Documentation
+- add restart-krunner.sh to the packaging list in AGENTS.md - (ba3d1fb) - dcog989
+- agents.md tidy - (684f4c9) - dcog989
+- add 'just clean' to readme - (a5c84f1) - dcog989
+- correct cancel-by-message case sensitivity in README - (5bd2456) - dcog989
+- agents.md refined - (474c883) - dcog989
+- add screenshots - (811090d) - dcog989
+#### Tests
+- (**alarm**) cover the presenter's idle-state counting - (bc1735d) - dcog989
+- (**engine**) cover the timerfd past-deadline path - (046389a) - dcog989
+#### CI
+- run the justfile's lint recipe instead of re-listing the linters - (a023c84) - dcog989
+#### Refactoring
+- (**engine**) drop the always-lost timerCountChanged emit from loadFromDisk - (be78366) - dcog989
+- (**engine**) match both timer maps through one helper - (71e2201) - dcog989
+- (**engine**) build the alarm dialog message label once - (ddf2102) - dcog989
+- (**runner**) build the missing-id cancel match once - (8ee180b) - dcog989
+- (**time**) share one deadline formatter between list and alarm window - (9599f9f) - dcog989
+
+- - -
+
 ## v0.2.8 - 2026-10-07
 #### Bug Fixes
 - (**engine**) guard the looping alarm notification with a QPointer - (f3be7f8) - dcog989
