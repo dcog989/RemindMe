@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=RemindMe Timer
+Comment=Start, list and cancel timers
+Icon=kronometer
+Exec=@REMINDME_LIBEXEC_DIR@/krunner-remindme
+Terminal=false
+NoDisplay=true
+StartupWMClass=krunner-remindme

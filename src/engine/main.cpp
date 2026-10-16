@@ -1,5 +1,6 @@
 #include <QApplication>
 #include <QDBusConnection>
+#include <QIcon>
 #include <QTimer>
 
 #include <KLocalizedString>
@@ -31,8 +32,14 @@ int main(int argc, char **argv)
     QApplication app(argc, argv);
     // Deliberately no organizationName: QStandardPaths::AppDataLocation must stay
     // ~/.local/share/krunner-remindme so existing timers.json keeps being found.
-    app.setApplicationName(QStringLiteral("krunner-remindme"));
+    const QString appName = QStringLiteral("krunner-remindme");
+    app.setApplicationName(appName);
     app.setOrganizationDomain(QStringLiteral("io.github.dcog989"));
+    // The Wayland app id and the window icon both come from this name: KWin looks up
+    // krunner-remindme.desktop (installed from data/) and pulls its name and icon from there. The
+    // icon is also set explicitly so the alarm window is not generic on X11.
+    app.setDesktopFileName(appName);
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("kronometer")));
     KLocalizedString::setApplicationDomain(QByteArrayLiteral("krunner_remindme"));
     // Windowed, but closing the last alarm dialog must not quit the process and drop the
     // remaining timers; the process only exits once the engine reports nothing left to do.

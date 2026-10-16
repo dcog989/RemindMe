@@ -36,6 +36,17 @@ configure_file(
     @ONLY
 )
 
+# The application entry KWin matches the alarm window against: the window's Qt app id is
+# "krunner-remindme" (see setDesktopFileName in src/engine/main.cpp), so the entry is named after
+# it. Without it the window and its task manager entry fall back to a generic name and icon.
+set(REMINDME_LIBEXEC_DIR ${KDE_INSTALL_FULL_LIBEXECDIR_KF})
+set(REMINDME_APP_DESKTOP_FILE ${CMAKE_CURRENT_BINARY_DIR}/krunner-remindme.desktop)
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/data/krunner-remindme.desktop
+    ${REMINDME_APP_DESKTOP_FILE}
+    @ONLY
+)
+
 add_subdirectory(src)
 
 if(BUILD_TESTING)
