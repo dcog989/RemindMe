@@ -49,21 +49,10 @@ jobs:
       - name: Install tools
         run: |
           pacman -Syu --noconfirm --needed \
-            git clang typos shellcheck yamllint editorconfig-checker
+            git just clang typos shellcheck yamllint editorconfig-checker
       - uses: actions/checkout@v7
       - name: Mark the workspace as a safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
-      - name: clang-format
-        run: |
-          files=$(git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hpp' '*.hxx')
-          [ -z "$files" ] || clang-format --dry-run --Werror $files
-      - name: typos
-        run: typos .
-      - name: shellcheck
-        run: |
-          files=$(git ls-files '*.sh' '*.bash')
-          [ -z "$files" ] || shellcheck $files
-      - name: yamllint
-        run: yamllint .
-      - name: editorconfig
-        run: editorconfig-checker
+      # The justfile owns the lint set; running it here keeps CI and `just lint` from drifting.
+      - name: Lint
+        run: just lint
