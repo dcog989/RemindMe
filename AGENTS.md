@@ -13,7 +13,7 @@
 
 - Repo root: `/home/bubba/Projects/RemindMe`
 - Scratch: `/tmp/*`
-- Read-only: `.env*`, `.git/`
+- Read-only: `.env*`, `.git/`, `.docs/`
 
 ### Target Layout
 
@@ -46,7 +46,7 @@ remindme/
 ├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmealarmpresentertest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
 ├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh / restart-krunner.sh / preset-args.sh
-│   └── kns/                             # first-run build launcher for the store package
+│   └── kns/                             # install launcher for the store package (prebuilt payload)
 └── README.md
 ```
 

@@ -58,7 +58,7 @@ Trigger words: `remindme` or `rme`.
 - `just tidy` — clang-tidy over the configured preset (configures and builds first)
 - `just pot` — extract translatable strings into `po/krunner_remindme.pot`
 - `just reload` — rebuild, reinstall and relaunch KRunner
-- `just package` — package for the KDE Store
+- `just package` — build the KDE Store payload. Needs podman or docker (`IMAGE`, `ARCHES` and `RUNTIME` override the defaults): the archive ships a binary built in the container, so store users install without a toolchain.
 - `just clean`
 
 ### Install from source

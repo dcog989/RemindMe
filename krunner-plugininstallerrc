@@ -1,6 +1,6 @@
 # Read by krunner-plugininstaller when this project is installed through KRunner's
 # "Get New Plugins". It copies MetaDataFile into ~/.local/share/krunner/dbusplugins
-# and writes a D-Bus service whose Exec points at the launcher. The launcher builds
-# the plugin on first activation; see packaging/kns/krunner-remindme-launcher.sh.
-MetaDataFile=data/plasma-runner-remindme.desktop
+# and writes a D-Bus service whose Exec points at the launcher. The launcher copies the
+# prebuilt payload into ~/.local and starts it; see packaging/kns/krunner-remindme-launcher.sh.
+MetaDataFile=share/krunner/dbusplugins/plasma-runner-remindme.desktop
 Exec=%{PROJECTDIR}/packaging/kns/krunner-remindme-launcher.sh

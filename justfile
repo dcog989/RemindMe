@@ -136,7 +136,7 @@ doctor:
 # Packaging & local run
 # ---------------------------------------------------------------------------
 
-# Build the KDE Store source/binary package
+# Build the KDE Store payload (prebuilt binary per architecture, in a container)
 package:
     #!/usr/bin/env bash
     set -euo pipefail
