@@ -2,9 +2,10 @@
 
 A timer plugin for KDE Plasma 6. Allows you to create, list, and cancel timers from KRunner with optional message and snooze.
 
-![screenshot 1](assets/screen1.webp)
-![screenshot 2](assets/screen2.webp)
-![screenshot 3](assets/screen3.webp)
+![screenshot 1](assets/screen-1.webp)
+![screenshot 2](assets/screen-2.webp)
+![screenshot 3](assets/screen-3.webp)
+![screenshot 4](assets/screen-4.webp)
 
 ## Install
 
