@@ -170,7 +170,6 @@ void RemindmeEngine::loadFromDisk()
             m_nextId = std::max(m_nextId, timer.id + 1);
         }
     }
-    Q_EMIT timerCountChanged(m_timers.size() + m_firedAlarms.size());
 }
 
 void RemindmeEngine::saveToDisk() const
