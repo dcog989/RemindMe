@@ -52,8 +52,16 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
         m_engine.cancel(timer.id);
     });
     // The window is WA_DeleteOnClose, so closing it may be the last thing holding the process up
-    // (e.g. a cancel-by-dismissal leaves no timers); let the host re-check idleness.
-    connect(dialog, &QObject::destroyed, this, &AlarmPresenter::onDialogClosed);
+    // (e.g. a cancel-by-dismissal leaves no timers); let the host re-check idleness. Drop the
+    // tracking entry here too, or the hash grows one stale key per alarm shown. A replacement
+    // window is already stored under the same id by the time the old one dies, so only remove the
+    // entry when the tracked window is gone.
+    connect(dialog, &QObject::destroyed, this, [this, id = timer.id]() {
+        if (m_dialogs.value(id).isNull()) {
+            m_dialogs.remove(id);
+        }
+        onDialogClosed();
+    });
     dialog->show();
     // This process runs in the background, so the dialog could otherwise map behind the active
     // window (especially on Wayland); an alarm you cannot see defeats the purpose.
