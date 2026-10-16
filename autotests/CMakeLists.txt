@@ -41,3 +41,21 @@ target_compile_definitions(remindmeintegrationtest PRIVATE
 krunner_configure_test(remindmeintegrationtest krunner-remindme
     DESKTOP_FILE ${REMINDME_DESKTOP_FILE}
 )
+
+# The alarm presenter decides the process's right to exit from its open-window count; a wrong count
+# drops a live alarm or keeps the process alive. Drives the windowed path (the sound path needs a
+# notification service).
+ecm_add_test(remindmealarmpresentertest.cpp TEST_NAME remindmealarmpresentertest LINK_LIBRARIES Qt6::Test Qt6::Widgets KF6::CoreAddons KF6::I18n KF6::Notifications)
+target_sources(remindmealarmpresentertest PRIVATE
+    ${REMINDME_ENGINE_DIR}/remindmealarmpresenter.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmdialog.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmnotification.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmsound.cpp
+    ${REMINDME_ENGINE_DIR}/remindmeengine.cpp
+    ${REMINDME_ENGINE_DIR}/remindmetime.cpp
+    ${REMINDME_SCHEDULER_SOURCES}
+)
+target_include_directories(remindmealarmpresentertest PRIVATE ${REMINDME_ENGINE_DIR})
+# The presenter takes the windowed path for any platform but "offscreen"; "minimal" creates and
+# destroys widgets without a display. Appended so ECM's QT_PLUGIN_PATH stays set.
+set_property(TEST remindmealarmpresentertest APPEND PROPERTY ENVIRONMENT "QT_QPA_PLATFORM=minimal")

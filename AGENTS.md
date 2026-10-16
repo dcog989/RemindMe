@@ -43,7 +43,7 @@ remindme/
 │   ├── plasma-runner-remindme.desktop   # DBus2 runner metadata
 │   ├── krunner-remindme.desktop         # application entry KWin matches the alarm window against
 │   └── krunner-remindme.notifyrc
-├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmeintegrationtest
+├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmealarmpresentertest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
 ├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh / preset-args.sh
 │   └── kns/                             # first-run build launcher for the store package
