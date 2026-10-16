@@ -34,6 +34,11 @@ target_include_directories(krunner-remindme PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/runner
 )
 
+# PIE: a non-PIE executable links copy relocations against Qt's protected data symbols, which the
+# loader rejects (GNU_PROPERTY_1_NEEDED_INDIRECT_EXTERN_ACCESS) once the binary is built against
+# another distribution's Qt than the one it runs with.
+set_target_properties(krunner-remindme PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 target_compile_definitions(krunner-remindme PRIVATE
     REMINDME_DBUS_SERVICE_NAME="${REMINDME_DBUS_SERVICE_NAME}"
 )

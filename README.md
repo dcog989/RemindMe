@@ -93,9 +93,9 @@ kquitapp6 krunner && krunner &
 The packaging helpers wrap the same steps and restart KRunner:
 
 ```sh
-packaging/build.sh
-packaging/install.sh            # or: packaging/install.sh --system
-packaging/uninstall.sh          # driven by the CMake install manifest
+bash packaging/build.sh
+bash packaging/install.sh            # or: packaging/install.sh --system
+bash packaging/uninstall.sh          # driven by the CMake install manifest
 ```
 
 ---
