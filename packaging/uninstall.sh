@@ -29,5 +29,9 @@ while IFS= read -r file; do
     $sudo rm -f "$file"
 done < <(sort -r "$manifest")
 
+# The engine's runtime autostart entry is not in the install manifest; drop it too, so a login
+# does not try to run the removed binary.
+rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/krunner-remindme.desktop"
+
 echo "==> Removed installed files ($preset)"
 bash "$script_dir/restart-krunner.sh"
