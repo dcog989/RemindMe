@@ -11,7 +11,7 @@
 
 ### File Access
 
-- Repo root: `/home/bubba/Projects/remindme`
+- Repo root: `/home/bubba/Projects/RemindMe`
 - Scratch: `/tmp/*`
 - Read-only: `.env*`, `.git/`
 
