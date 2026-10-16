@@ -2,6 +2,18 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.3.1 - 2026-10-16
+#### Bug Fixes
+- (**build**) avoid copy relocations against Qt's protected data symbols - (83a55bd) - dcog989
+- (**build**) build the payload binary as position independent - (170c6a1) - dcog989
+- (**build**) link krunner-remindme as position independent - (3e584ba) - dcog989
+#### Documentation
+- (**readme**) add install steps for the downloaded archive - (0977bb3) - dcog989
+#### Build
+- (**packaging**) default the store payload to x86_64 - (ab324ee) - dcog989
+
+- - -
+
 ## v0.3.0 - 2026-10-16
 #### Features
 - (**packaging**) ship a prebuilt binary in the store payload - (0fc4521) - dcog989
