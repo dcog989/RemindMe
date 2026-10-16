@@ -105,16 +105,15 @@ QList<Remindme::TimerInfo> RemindmeEngine::findTimersByMessage(const QString &te
     const auto messageMatches = [&term](const Remindme::TimerInfo &timer) {
         return timer.message.contains(term, Qt::CaseInsensitive);
     };
-    for (const Remindme::TimerInfo &timer : std::as_const(m_timers)) {
-        if (messageMatches(timer)) {
-            matches.append(timer);
+    const auto collectMatches = [&matches, &messageMatches](const QMap<int, Remindme::TimerInfo> &timers) {
+        for (const Remindme::TimerInfo &timer : timers) {
+            if (messageMatches(timer)) {
+                matches.append(timer);
+            }
         }
-    }
-    for (const Remindme::TimerInfo &timer : std::as_const(m_firedAlarms)) {
-        if (messageMatches(timer)) {
-            matches.append(timer);
-        }
-    }
+    };
+    collectMatches(m_timers);
+    collectMatches(m_firedAlarms);
     std::ranges::sort(matches, [](const Remindme::TimerInfo &a, const Remindme::TimerInfo &b) {
         return a.id < b.id;
     });
