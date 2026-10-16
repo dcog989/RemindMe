@@ -21,10 +21,5 @@ cmake --build --preset "$preset"
 $sudo cmake --install "build/$preset"
 
 echo "==> Installed ($preset). Restarting KRunner"
-if command -v kquitapp6 >/dev/null 2>&1; then
-    kquitapp6 krunner >/dev/null 2>&1 || true
-fi
-if command -v krunner >/dev/null 2>&1; then
-    setsid -f krunner --daemon >/dev/null 2>&1
-fi
+bash "$script_dir/restart-krunner.sh"
 echo "Try: rme 5  |  rme list  |  rme cancel 3"
