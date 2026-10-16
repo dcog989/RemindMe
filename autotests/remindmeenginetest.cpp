@@ -2,6 +2,7 @@
 #include "deadlinescheduler.h"
 #include "remindmetime.h"
 
+#include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -221,11 +222,25 @@ private Q_SLOTS:
         resetEngine();
         QCOMPARE(engine->list().size(), 0);
 
-        // The unreadable file is preserved as .bak and not overwritten by the next save.
+        // The unreadable file is preserved under a timestamped .bak name and is not overwritten by
+        // the next save.
         QVERIFY(!QFile::exists(stateFilePath()));
-        QFile backup(stateFilePath() + QStringLiteral(".bak"));
-        QVERIFY(backup.open(QIODevice::ReadOnly));
-        QCOMPARE(backup.readAll(), QByteArray("this is not json"));
+        const auto backups = [this]() {
+            return QDir(tempDir->path()).entryList(QStringList{QStringLiteral("timers.json*.bak")}, QDir::Files, QDir::Name);
+        };
+        QCOMPARE(backups().size(), 1);
+        QFile first(tempDir->filePath(backups().constFirst()));
+        QVERIFY(first.open(QIODevice::ReadOnly));
+        QCOMPARE(first.readAll(), QByteArray("this is not json"));
+        first.close();
+
+        // A second corruption backs up the new file without destroying the first backup.
+        QFile again(stateFilePath());
+        QVERIFY(again.open(QIODevice::WriteOnly));
+        again.write("still not json");
+        again.close();
+        resetEngine();
+        QCOMPARE(backups().size(), 2);
 
         QCOMPARE(engine->create(60, QString()).value().id, 1); // next mutation writes a fresh file
         QVERIFY(QFile::exists(stateFilePath()));

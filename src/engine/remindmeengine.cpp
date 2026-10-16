@@ -1,5 +1,6 @@
 #include "remindmeengine.h"
 
+#include <QDateTime>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -138,10 +139,14 @@ void RemindmeEngine::loadFromDisk()
     if (error.error != QJsonParseError::NoError || !doc.isArray()) {
         const QString reason = error.error != QJsonParseError::NoError ? error.errorString() : QStringLiteral("root is not a JSON array");
         qWarning() << "Discarding corrupt timer state file" << m_stateFilePath << reason;
-        // Preserve the unreadable file so the next save cannot silently overwrite the only copy
-        // of whatever the user had. QFile::rename() refuses to clobber an existing target.
-        const QString backupPath = m_stateFilePath + QStringLiteral(".bak");
-        QFile::remove(backupPath);
+        // Preserve every unreadable file so a later save cannot overwrite it and a second
+        // corruption cannot destroy the first backup. Timestamped, with a numeric suffix to
+        // resolve collisions within the same second; these accumulate and are never pruned.
+        const QString base = m_stateFilePath + QStringLiteral(".") + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+        QString backupPath = base + QStringLiteral(".bak");
+        for (int suffix = 1; QFile::exists(backupPath); ++suffix) {
+            backupPath = base + QStringLiteral("-") + QString::number(suffix) + QStringLiteral(".bak");
+        }
         if (!QFile::rename(m_stateFilePath, backupPath)) {
             qWarning() << "Could not back up corrupt timer state file to" << backupPath;
         }
