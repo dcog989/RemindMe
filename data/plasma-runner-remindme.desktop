@@ -2,7 +2,7 @@
 Name=Remind me
 Comment=Start, list and cancel timers
 Type=Service
-Icon=kronometer
+Icon=io.github.dcog989.remindme
 X-KDE-PluginInfo-Author=dcog989
 X-KDE-PluginInfo-Name=remindme
 X-KDE-PluginInfo-Version=@PROJECT_VERSION@

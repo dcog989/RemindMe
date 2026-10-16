@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <title>RemindMe</title>
+  <g stroke-linecap="round">
+    <path d="M19 5h10" stroke="#2b4d4d" stroke-width="4" />
+    <path d="M24 7v6" stroke="#2b4d4d" stroke-width="3" />
+    <circle cx="24" cy="28" r="15" fill="#9ad0d0" stroke="#2b4d4d" stroke-width="3" />
+    <path d="M24 28 31.8 20.2" stroke="#509595" stroke-width="3.5" />
+    <circle cx="24" cy="28" r="2.2" fill="#2b4d4d" />
+  </g>
+</svg>

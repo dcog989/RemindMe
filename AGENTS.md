@@ -39,6 +39,7 @@ remindme/
 │       ├── remindmeadaptor.{h,cpp}      # Match/Run/Actions/Config/Teardown
 │       └── remotematch.h                # D-Bus wire types for the runner protocol
 ├── data/                                # installed data files
+│   ├── io.github.dcog989.remindme.svg   # plugin icon (installed to hicolor)
 │   ├── plasma-runner-remindme.desktop   # DBus2 runner metadata
 │   ├── krunner-remindme.desktop         # application entry KWin matches the alarm window against
 │   └── krunner-remindme.notifyrc

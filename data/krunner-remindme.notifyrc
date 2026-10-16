@@ -1,13 +1,13 @@
 
 [Global]
 Name=Remind me
-IconName=kronometer
+IconName=io.github.dcog989.remindme
 Comment=Timer reminders
 
 [Event/remindme]
 Name=Timer finished
 Comment=Sound played when a remindme timer expires
-IconName=kronometer
+IconName=io.github.dcog989.remindme
 Action=Sound
 # Resolved against the user's configured sound theme (same event name as the timer applet)
 Sound=alarm-clock-elapsed

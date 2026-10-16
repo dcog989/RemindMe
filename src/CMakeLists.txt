@@ -64,6 +64,10 @@ install(FILES ${REMINDME_APP_DESKTOP_FILE}
     DESTINATION ${KDE_INSTALL_APPDIR}
 )
 
+install(FILES ${CMAKE_SOURCE_DIR}/data/io.github.dcog989.remindme.svg
+    DESTINATION ${KDE_INSTALL_ICONDIR}/hicolor/scalable/apps
+)
+
 install(FILES ${CMAKE_SOURCE_DIR}/data/krunner-remindme.notifyrc
     DESTINATION ${KDE_INSTALL_KNOTIFYRCDIR}
 )

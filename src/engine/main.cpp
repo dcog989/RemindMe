@@ -39,7 +39,13 @@ int main(int argc, char **argv)
     // krunner-remindme.desktop (installed from data/) and pulls its name and icon from there. The
     // icon is also set explicitly so the alarm window is not generic on X11.
     app.setDesktopFileName(appName);
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("kronometer")));
+    QIcon icon = QIcon::fromTheme(QStringLiteral("io.github.dcog989.remindme"));
+    if (icon.isNull()) {
+        // Fall back to the Breeze stopwatch when running from a build tree, where our own icon
+        // (data/io.github.dcog989.remindme.svg) is not installed into the theme yet.
+        icon = QIcon::fromTheme(QStringLiteral("kronometer"));
+    }
+    app.setWindowIcon(icon);
     KLocalizedString::setApplicationDomain(QByteArrayLiteral("krunner_remindme"));
     // Windowed, but closing the last alarm dialog must not quit the process and drop the
     // remaining timers; the process only exits once the engine reports nothing left to do.

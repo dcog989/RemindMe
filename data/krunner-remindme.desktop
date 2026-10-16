@@ -2,7 +2,7 @@
 Type=Application
 Name=RemindMe Timer
 Comment=Start, list and cancel timers
-Icon=kronometer
+Icon=io.github.dcog989.remindme
 Exec=@REMINDME_LIBEXEC_DIR@/krunner-remindme
 Terminal=false
 NoDisplay=true
