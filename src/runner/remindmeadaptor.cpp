@@ -48,7 +48,7 @@ RemoteMatch makeMatch(const QString &id, const QString &text, qreal relevance)
     RemoteMatch match;
     match.id = id;
     match.text = text;
-    match.iconName = QStringLiteral("kronometer");
+    match.iconName = QStringLiteral("io.github.dcog989.remindme");
     match.categoryRelevance = categoryRelevanceHighest;
     match.relevance = relevance;
     match.properties.insert(QStringLiteral("actions"), QStringList());
