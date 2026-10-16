@@ -278,16 +278,12 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
     // for the duration can also address its id.
     const std::optional<int> id = Remindme::parseLocaleInt(idString);
 
-    if (id) {
-        // Validate the id refers to an active timer, so a stale or mistyped id is not
-        // silently accepted as a no-op cancellation.
-        if (!m_engine->contains(*id)) {
-            addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
-            return;
-        }
+    if (id && m_engine->contains(*id)) {
         matches.append(makeMatch(s_cancelPrefix + QString::number(*id), i18n("Cancel timer #%1", idString), relevanceCancel));
-    } else if (idMarker) {
-        // A "#" prefix pins the term as an id, so a non-numeric remainder names no timer.
+    } else if (id || idMarker) {
+        // The id names no active timer, or a "#" prefix pins the term as an id and a non-numeric
+        // remainder is not a valid one. Either way it is reported as a missing id, never silently
+        // accepted as a no-op cancellation.
         addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
     } else {
         // The term is a message substring; validate it matches before offering, like the id path,
