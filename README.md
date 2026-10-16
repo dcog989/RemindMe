@@ -9,13 +9,23 @@ A timer plugin for KDE Plasma 6. Allows you to create, list, and cancel timers f
 
 ## Install
 
-> [!NOTE]
-> not yet submitted to the KDE Store
+From the KDE Store, inside KRunner:
 
 1. Open *System Settings → Search → Plasma Search*.
 2. Click *Get New Plugins…*.
-3. Search for *RemindMe* and install it.
-4. Restart KRunner: `kquitapp6 krunner && krunner &` (or log out and back in).
+3. Search for *RemindMe* and click *Install*.
+4. Restart KRunner so it loads the new plugin: log out and back in, or run `systemctl --user restart plasma-krunner.service`. KRunner reads the plugin list only at startup, so a new plugin does not appear before this.
+
+### Manual install from archive
+
+Download from <https://store.kde.org/p/2379079> then:
+
+```sh
+mkdir -p ~/.local/share/krunner-sources
+tar xzf ~/path/to/remindme-*.tar.gz -C ~/.local/share/krunner-sources
+krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-*
+systemctl --user restart plasma-krunner.service
+```
 
 Optionally, go to *System Settings → Search → Plasma Search* and make RemindMe a favorite and move it above others as required.
 
