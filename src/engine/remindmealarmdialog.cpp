@@ -45,13 +45,13 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
 
     const bool isExpiry = kind == Remindme::AlarmKind::Expiry;
     auto *layout = new QVBoxLayout(this);
+    if (!timer.message.isEmpty()) {
+        auto *messageLabel = new QLabel(timer.message, this);
+        messageLabel->setWordWrap(true);
+        layout->addWidget(messageLabel);
+    }
     if (isExpiry) {
         setWindowTitle(Remindme::alarmTitle());
-        if (!timer.message.isEmpty()) {
-            auto *messageLabel = new QLabel(timer.message, this);
-            messageLabel->setWordWrap(true);
-            layout->addWidget(messageLabel);
-        }
         // A timer that expired while the system was off (e.g. a shutdown) surfaces later than
         // its deadline. Show when it was due and how long ago, so a late alarm is not mistaken
         // for one that fired on time.
@@ -65,11 +65,6 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
         // A reminder for a still-active timer. The message and due time used to live only in the
         // window title; show them as body text so the dialog is actually informative.
         setWindowTitle(i18n("Reminder"));
-        if (!timer.message.isEmpty()) {
-            auto *messageLabel = new QLabel(timer.message, this);
-            messageLabel->setWordWrap(true);
-            layout->addWidget(messageLabel);
-        }
         auto *dueLabel = new QLabel(i18n("Due %1.", Remindme::formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline), false)), this);
         dueLabel->setWordWrap(true);
         layout->addWidget(dueLabel);
