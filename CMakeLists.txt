@@ -18,6 +18,7 @@ include(KDECMakeSettings)
 include(KDECompilerSettings NO_POLICY_SCOPE)
 include(ECMGenerateDBusServiceFile)
 include(ECMAddTests)
+include(CheckCXXCompilerFlag)
 include(CheckPIESupported)
 include(FeatureSummary)
 

@@ -39,6 +39,18 @@ target_include_directories(krunner-remindme PRIVATE
 # another distribution's Qt than the one it runs with.
 set_target_properties(krunner-remindme PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Qt passes this on in its own CMake config since 6.11; add it here so a binary built against an
+# older Qt still avoids copy relocations against the protected symbols of a newer one.
+check_cxx_compiler_flag(-mno-direct-extern-access HAVE_MNO_DIRECT_EXTERN_ACCESS)
+if(HAVE_MNO_DIRECT_EXTERN_ACCESS)
+    target_compile_options(krunner-remindme PRIVATE -mno-direct-extern-access)
+else()
+    check_cxx_compiler_flag(-fno-direct-access-external-data HAVE_FNO_DIRECT_ACCESS)
+    if(HAVE_FNO_DIRECT_ACCESS)
+        target_compile_options(krunner-remindme PRIVATE -fno-direct-access-external-data)
+    endif()
+endif()
+
 target_compile_definitions(krunner-remindme PRIVATE
     REMINDME_DBUS_SERVICE_NAME="${REMINDME_DBUS_SERVICE_NAME}"
 )
