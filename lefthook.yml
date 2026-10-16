@@ -25,7 +25,7 @@ pre-commit:
 
     - name: shellcheck
       glob: "*.{sh,bash}"
-      run: shellcheck {staged_files}
+      run: shellcheck -x -P SCRIPTDIR {staged_files}
       skip:
         - run: "! command -v shellcheck >/dev/null 2>&1"
 

@@ -100,7 +100,9 @@ lint:
     if have typos; then step typos .; else skip "typos"; fi
 
     sh=$(git ls-files '*.sh' '*.bash')
-    if have shellcheck && [ -n "$sh" ]; then step shellcheck $sh; else skip "shellcheck"; fi
+    # -x follows sourced files; -P SCRIPTDIR resolves their `# shellcheck source=` directive
+    # relative to the script, not the CWD (otherwise install/uninstall trip SC1091).
+    if have shellcheck && [ -n "$sh" ]; then step shellcheck -x -P SCRIPTDIR $sh; else skip "shellcheck"; fi
 
     if have yamllint; then step yamllint .; else skip "yamllint"; fi
 
