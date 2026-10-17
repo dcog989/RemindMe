@@ -12,6 +12,9 @@ namespace Remindme
 // later alarms get the "overdue" line in overdueText() (remindmealarmdialog.cpp).
 constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
 
+// Upper bound of the snooze spin box, in minutes (24 h).
+constexpr int maxSnoozeMinutes = 60 * 24;
+
 // Which alarm a dialog or presenter is handling: an expiry alarm (looping sound, "Dismiss") or a
 // manual reminder for a still-active timer (no sound, "Cancel timer").
 enum class AlarmKind : std::uint8_t {
@@ -32,7 +35,8 @@ public:
     explicit RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind, qint64 nowMs, QWidget *parent = nullptr);
 
 Q_SIGNALS:
-    void snoozeRequested();
+    // minutes is the snooze length the user picked in the spin box.
+    void snoozeRequested(int minutes);
     // Emitted when "Dismiss" acknowledges an expired alarm or "Cancel timer" cancels a
     // still-active one. Closing an expiry window (X or Esc) acknowledges it too; closing a
     // still-active reminder is a no-op, so the timer keeps running.

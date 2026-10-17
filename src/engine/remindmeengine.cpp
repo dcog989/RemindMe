@@ -231,14 +231,14 @@ void RemindmeEngine::commitTimers()
     Q_EMIT timerCountChanged(m_timers.size() + m_firedAlarms.size());
 }
 
-qint64 RemindmeEngine::extendedDeadline(qint64 deadline) const
+qint64 RemindmeEngine::extendedDeadline(qint64 deadline, qint64 durationMs) const
 {
-    return std::max(nowMs(), deadline) + Remindme::snoozeDurationMs;
+    return std::max(nowMs(), deadline) + durationMs;
 }
 
-void RemindmeEngine::snoozeTimer(Remindme::TimerInfo timer)
+void RemindmeEngine::snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs)
 {
-    timer.deadline = extendedDeadline(timer.deadline);
+    timer.deadline = extendedDeadline(timer.deadline, durationMs);
     m_timers.insert(timer.id, timer);
     commitTimers();
 }
@@ -274,7 +274,7 @@ void RemindmeEngine::checkExpiredTimers()
     }
 }
 
-bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer)
+bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer, qint64 durationMs)
 {
     // Prefer the live timer so a still-active timer keeps the time that was left (extending rather
     // than restarting is handled by snoozeTimer()). Otherwise the timer is a fired alarm: drop it
@@ -282,11 +282,11 @@ bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer)
     // exactly one set.
     const auto it = m_timers.constFind(timer.id);
     if (it != m_timers.cend()) {
-        snoozeTimer(it.value());
+        snoozeTimer(it.value(), durationMs);
         return true;
     }
     if (m_firedAlarms.remove(timer.id) > 0) {
-        snoozeTimer(timer);
+        snoozeTimer(timer, durationMs);
         return true;
     }
     return false;

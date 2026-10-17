@@ -6,6 +6,7 @@
 #include <QLabel>
 #include <QLocale>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QVBoxLayout>
 
 #include <KFormat>
@@ -71,16 +72,22 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     }
 
     auto *buttons = new QHBoxLayout;
-    const int snoozeMinutes = Remindme::snoozeDurationMs / (60 * 1000);
-    auto *snoozeButton = new QPushButton(i18np("Snooze +%1 minute", "Snooze +%1 minutes", snoozeMinutes), this);
+    auto *snoozeSpin = new QSpinBox(this);
+    snoozeSpin->setRange(1, Remindme::maxSnoozeMinutes);
+    snoozeSpin->setValue(Remindme::snoozeDurationMs / (60 * 1000));
+    snoozeSpin->setSuffix(i18n(" min"));
+    auto *snoozeButton = new QPushButton(i18n("Snooze"), this);
     // For a still-active timer the destructive action is cancelling it, so name it accordingly
     // rather than "Dismiss" (which, for the expired alarm, only acknowledges the alarm).
     auto *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
+    buttons->addWidget(snoozeSpin);
     buttons->addWidget(snoozeButton);
     buttons->addWidget(dismissButton);
     layout->addLayout(buttons);
 
-    connect(snoozeButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::snoozeRequested);
+    connect(snoozeButton, &QPushButton::clicked, this, [this, snoozeSpin]() {
+        Q_EMIT snoozeRequested(snoozeSpin->value());
+    });
     connect(snoozeButton, &QPushButton::clicked, this, &QDialog::accept);
     connect(dismissButton, &QPushButton::clicked, this, &QDialog::accept);
     // "Cancel timer" (still-active) cancels the timer; "Dismiss" (expired) acknowledges the

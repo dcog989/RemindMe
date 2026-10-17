@@ -26,10 +26,10 @@ public:
     // timerfd) and parents it to itself.
     explicit RemindmeEngine(QObject *parent = nullptr, const QString &stateFilePath = {}, DeadlineScheduler *scheduler = nullptr);
 
-    // Snoozes a timer, extending its deadline by Remindme::snoozeDurationMs. A still-active timer
-    // keeps the time that was left (its live entry is preferred); an expired alarm is dropped from
-    // the fired set and re-armed from now. Returns false if the id is neither active nor fired.
-    bool snooze(const Remindme::TimerInfo &timer);
+    // Snoozes a timer, extending its deadline by durationMs. A still-active timer keeps the time
+    // that was left (its live entry is preferred); an expired alarm is dropped from the fired set
+    // and re-armed from now. Returns false if the id is neither active nor fired.
+    bool snooze(const Remindme::TimerInfo &timer, qint64 durationMs = Remindme::snoozeDurationMs);
 
     // Moves timers expired as of nowMs() to the fired set and emits timerExpired() for each.
     // Called by the scheduler; public so unit tests can drive expiry deterministically without
@@ -76,11 +76,11 @@ private:
     void scheduleExpiryCheck();
     // Persists m_timers and m_firedAlarms and re-arms the scheduler. Call after any mutation.
     void commitTimers();
-    // Extends deadline by Remindme::snoozeDurationMs, anchored to now if it has already passed
-    // (so snoozing an expired timer doesn't leave it expired again immediately).
-    qint64 extendedDeadline(qint64 deadline) const;
+    // Extends deadline by durationMs, anchored to now if it has already passed (so snoozing an
+    // expired timer doesn't leave it expired again immediately).
+    qint64 extendedDeadline(qint64 deadline, qint64 durationMs) const;
     // Extends timer's deadline and (re-)inserts it into m_timers; shared by both snooze() paths.
-    void snoozeTimer(Remindme::TimerInfo timer);
+    void snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs);
 
     // Keyed by id so iteration is id-ordered: expiry alarms fire (and their dialogs stack) in
     // the order the timers were created, deterministic across runs.

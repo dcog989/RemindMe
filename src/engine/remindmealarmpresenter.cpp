@@ -42,8 +42,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     // Count before closing the previous window: its later destruction decrements the count again,
     // so the presenter never reports "nothing on screen" while this timer still has a window.
     ++m_openDialogCount;
-    connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer]() {
-        m_engine.snooze(timer);
+    connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer](int minutes) {
+        m_engine.snooze(timer, qint64(minutes) * 60 * 1000);
     });
     // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; cancel handles
     // both. The dialog also emits this when an expiry window is closed (X or Esc); a closed
