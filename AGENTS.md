@@ -113,11 +113,7 @@ remindme/
 
 ### Communication Style
 
-- Commit messages: never hard-wrap lines.
-- Provide concise, actionable responses.
-- Answer in the fewest words that fully answer. No preamble, no restating the request, no summary of what you just did, no tables unless asked for.
-- Ask clarifying questions when requirements are ambiguous.
-- Flag potential risks or edge cases proactively.
-- Do not pretend to understand how the user feels.
-- Never editorialise your answer. No "honest answer", hedging, disclaimers, or meta-commentary — just answer.
-- Never end with "want me to…?" or a list of options unless a real decision is needed. If nothing is needed, end.
+- Fixes and instructions: numbered steps, one action each, exact command/path/code. No prose paragraphs or recap.
+- Questions and explanations: direct prose, only the reasoning needed. No tables unless asked.
+- No preamble, restating, hedging, disclaimers, meta-commentary, emotional framing, or closing offers; end when done unless a real decision is needed.
+- Ask when requirements are ambiguous; put risks and edge cases in one final line.
