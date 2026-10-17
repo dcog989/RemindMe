@@ -152,8 +152,9 @@ reload preset="user":
     set -euo pipefail
     cmake --build --preset {{preset}}
     cmake --install build/{{preset}}
-    # Drop the helper from an older install so the freshly installed binary is the one activated.
-    pkill -f 'libexec/kf6/[k]runner-remindme' || true
+    # Drop the helper from any install prefix (kf6 = cmake, remindme = KDE Store launcher) so the
+    # freshly installed binary is the one activated.
+    pkill -f '[k]runner-remindme' || true
     if systemctl --user cat plasma-krunner.service >/dev/null 2>&1; then
         # Plasma 6 runs KRunner as a user service. Restarting it yields the single instance that
         # owns org.kde.krunner; hand-starting another krunner instead makes the two race for the
