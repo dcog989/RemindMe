@@ -24,7 +24,8 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local",
-        "KDE_INSTALL_USE_QT_SYS_PATHS": "OFF"
+        "KDE_INSTALL_USE_QT_SYS_PATHS": "OFF",
+        "KF_SKIP_PO_PROCESSING": "ON"
       }
     },
     {
@@ -55,7 +56,8 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_INSTALL_PREFIX": "$env{HOME}/.local",
         "KDE_INSTALL_USE_QT_SYS_PATHS": "OFF",
-        "ECM_ENABLE_SANITIZERS": "address;undefined"
+        "ECM_ENABLE_SANITIZERS": "address;undefined",
+        "KF_SKIP_PO_PROCESSING": "ON"
       }
     }
   ],
