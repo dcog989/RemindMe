@@ -22,6 +22,7 @@ Download from <https://store.kde.org/p/2379079> then:
 
 ```sh
 mkdir -p ~/.local/share/krunner-sources
+rm -rf ~/.local/share/krunner-sources/remindme-* # drop previous extractions, if any
 tar xzf ~/path/to/remindme-*.tar.gz -C ~/.local/share/krunner-sources
 krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-*
 systemctl --user restart plasma-krunner.service
