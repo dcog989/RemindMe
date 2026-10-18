@@ -2,6 +2,16 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.4.0 - 2026-10-18
+#### Features
+- (**alarm**) let the user pick the snooze length - (4181fb6) - dcog989
+#### Bug Fixes
+- (**build**) kill the remindme helper from any install prefix in `just reload` - (39c302a) - dcog989
+#### Documentation
+- agents.md refined - (43c3b66) - dcog989
+
+- - -
+
 ## v0.3.1 - 2026-10-16
 #### Bug Fixes
 - (**build**) avoid copy relocations against Qt's protected data symbols - (83a55bd) - dcog989
