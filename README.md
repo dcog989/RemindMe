@@ -34,26 +34,26 @@ Optionally, go to *System Settings → Search → Plasma Search* and make Remind
 
 Trigger words: `remindme` or `rme`.
 
-| Action                  | Query                  |
-| ----------------------- | ---------------------- |
-| Create timer            | `rme 5`, `rme 3h msg`  |
-| List active timers      | `rme list`             |
-| Cancel by id            | `rme cancel 3`         |
-| Cancel by message       | `rme cancel meeting`   |
-| List timers to cancel   | `rme cancel`           |
-| Usage / help            | `rme`                  |
+| Action                | Query                 |
+| --------------------- | --------------------- |
+| Create timer          | `rme 5`, `rme 3h msg` |
+| List active timers    | `rme list`            |
+| Cancel by id          | `rme cancel 3`        |
+| Cancel by message     | `rme cancel meeting`  |
+| List timers to cancel | `rme cancel`          |
+| Usage / help          | `rme`                 |
 
-| Input             | Meaning                             |
-| ----------------- | ----------------------------------- |
-| `rme 5`           | 5 minutes                           |
-| `rme 5.5`         | 5 minutes 30 seconds                |
-| `rme .5`          | 0.5 minutes = 30 seconds            |
-| `rme 0:20`        | 20 seconds                          |
-| `rme 20s`         | 20 seconds                          |
-| `rme 4h`          | 4 hours                             |
-| `rme 5:30`        | 5 minutes 30 seconds                |
-| `rme 4:15:30`     | 4 hours 15 minutes 30 seconds       |
-| `rme 8 pasta!`    | 8 minutes with the message `pasta!` |
+| Input          | Meaning                             |
+| -------------- | ----------------------------------- |
+| `rme 5`        | 5 minutes                           |
+| `rme 5.5`      | 5 minutes 30 seconds                |
+| `rme .5`       | 0.5 minutes = 30 seconds            |
+| `rme 0:20`     | 20 seconds                          |
+| `rme 20s`      | 20 seconds                          |
+| `rme 4h`       | 4 hours                             |
+| `rme 5:30`     | 5 minutes 30 seconds                |
+| `rme 4:15:30`  | 4 hours 15 minutes 30 seconds       |
+| `rme 8 pasta!` | 8 minutes with the message `pasta!` |
 
 ---
 
