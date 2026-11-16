@@ -58,7 +58,7 @@ jobs:
           # Same archive.archlinux.org stall as the build job; retry the transaction.
           for attempt in 1 2 3; do
             pacman -Syu --noconfirm --needed \
-              git just clang typos shellcheck yamllint editorconfig-checker && exit 0
+              git just clang typos shellcheck shfmt yamllint editorconfig-checker && exit 0
             printf 'pacman attempt %s failed; retrying\n' "$attempt" >&2
             sleep 20
           done
@@ -69,3 +69,5 @@ jobs:
       # The justfile owns the lint set; running it here keeps CI and `just lint` from drifting.
       - name: Lint
         run: just lint
+      - name: Format check
+        run: just format-check

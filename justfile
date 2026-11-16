@@ -2,8 +2,6 @@
 # Task runner for remindme. Run `just` to list recipes.
 # Build configuration lives in CMakePresets.json; hooks live in lefthook.yml.
 
-set shell := ["bash", "-euo", "pipefail", "-c"]
-
 # Verify the repo: lint, format check, then configure, build and test.
 default: check
 
@@ -65,23 +63,30 @@ format:
         shfmt -w $sh
     fi
 
-# Fail if C++ sources are not formatted
+# Fail if C++ or shell sources are not formatted
 format-check:
     #!/usr/bin/env bash
     set -uo pipefail
+    status=0
     cpp=$(git ls-files '*.c' '*.cc' '*.cpp' '*.cxx' '*.h' '*.hpp' '*.hxx')
-    if [ -z "$cpp" ]; then
-        echo "no C++ sources to check"
-        exit 0
+    sh=$(git ls-files '*.sh' '*.bash')
+    if [ -n "$cpp" ]; then
+        if command -v clang-format >/dev/null 2>&1; then
+            clang-format --dry-run --Werror $cpp || status=1
+        else
+            echo "clang-format not installed; skipping" >&2
+        fi
     fi
-    if ! command -v clang-format >/dev/null 2>&1; then
-        echo "clang-format not installed; skipping" >&2
-        exit 0
+    if [ -n "$sh" ]; then
+        if command -v shfmt >/dev/null 2>&1; then
+            shfmt -d $sh || status=1
+        else
+            echo "shfmt not installed; skipping" >&2
+        fi
     fi
-    clang-format --dry-run --Werror $cpp
+    exit "$status"
 
-# Run clang-tidy over project sources (configures and builds first: tidy needs a current
-# compile DB and the generated .moc files)
+# Run clang-tidy over project sources
 tidy preset="user" *args:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -185,3 +190,31 @@ release:
 # Verify a commit message file, as the commit-msg hook passes it.
 commit-check file *args:
     cog verify --file {{file}} {{args}}
+
+# clang-format over a file list, as the pre-commit hook passes it.
+format-clang-staged *files:
+    clang-format -i {{files}}
+
+# shfmt over a file list, as the pre-commit hook passes it.
+format-shfmt-staged *files:
+    shfmt -w {{files}}
+
+# typos over a file list, as the pre-commit hook passes it.
+lint-typos-staged *files:
+    typos {{files}}
+
+# shellcheck over a file list, as the pre-commit hook passes it.
+lint-shellcheck-staged *files:
+    shellcheck -x -P SCRIPTDIR {{files}}
+
+# yamllint over a file list, as the pre-commit hook passes it.
+lint-yamllint-staged *files:
+    yamllint {{files}}
+
+# editorconfig-checker over a file list, as the pre-commit hook passes it.
+lint-editorconfig-staged *files:
+    editorconfig-checker {{files}}
+
+# gitleaks over the staged index, as the pre-commit hook passes it.
+lint-gitleaks-staged *files:
+    gitleaks protect --staged --no-banner

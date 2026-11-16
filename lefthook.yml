@@ -13,42 +13,42 @@ pre-commit:
   jobs:
     - name: clang-format
       glob: "*.{c,cc,cpp,cxx,h,hpp,hxx}"
-      run: clang-format -i {staged_files}
+      run: just format-clang-staged {staged_files}
       stage_fixed: true
       skip:
         - run: "! command -v clang-format >/dev/null 2>&1"
 
     - name: typos
-      run: typos {staged_files}
+      run: just lint-typos-staged {staged_files}
       skip:
         - run: "! command -v typos >/dev/null 2>&1"
 
     - name: shellcheck
       glob: "*.{sh,bash}"
-      run: shellcheck -x -P SCRIPTDIR {staged_files}
+      run: just lint-shellcheck-staged {staged_files}
       skip:
         - run: "! command -v shellcheck >/dev/null 2>&1"
 
     - name: shfmt
       glob: "*.{sh,bash}"
-      run: shfmt -w {staged_files}
+      run: just format-shfmt-staged {staged_files}
       stage_fixed: true
       skip:
         - run: "! command -v shfmt >/dev/null 2>&1"
 
     - name: yamllint
       glob: "*.{yml,yaml}"
-      run: yamllint {staged_files}
+      run: just lint-yamllint-staged {staged_files}
       skip:
         - run: "! command -v yamllint >/dev/null 2>&1"
 
     - name: editorconfig-checker
-      run: editorconfig-checker {staged_files}
+      run: just lint-editorconfig-staged {staged_files}
       skip:
         - run: "! command -v editorconfig-checker >/dev/null 2>&1"
 
     - name: gitleaks
-      run: gitleaks protect --staged --no-banner
+      run: just lint-gitleaks-staged
       skip:
         - run: "! command -v gitleaks >/dev/null 2>&1"
 
