@@ -53,6 +53,7 @@ remindme/
 ### Workflow
 
 - Task runner: `just` (see `justfile`; `just` lists recipes). Never hand-roll configure/build commands when a recipe exists.
+- Verify everything: `just check` (lint, format check, configure, build, test); it is the default recipe.
 - Configure/build/test: `just ci` (runs `cmake --workflow --preset user`). Individual steps: `just configure`, `just build`, `just test`.
 - Presets live in `CMakePresets.json`: `user` (`~/.local`, Debug), `release`, `system`, `asan`. `CMAKE_EXPORT_COMPILE_COMMANDS` is on.
 - Install: `just install` (or `cmake --install build/<preset>`).

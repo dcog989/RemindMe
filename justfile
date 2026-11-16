@@ -4,8 +4,11 @@
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
+# Verify the repo: lint, format check, then configure, build and test.
+default: check
+
 # List available recipes
-default:
+list:
     @just --list
 
 # ---------------------------------------------------------------------------
@@ -27,6 +30,9 @@ test preset="user" *args:
 # Configure, build and test in one command
 ci preset="user":
     cmake --workflow --preset {{preset}}
+
+# Verify the repo: lint, format check and the full ci workflow
+check: lint format-check ci
 
 # Install a built preset
 install preset="user":

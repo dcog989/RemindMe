@@ -61,7 +61,9 @@ Trigger words: `remindme` or `rme`.
 
 ### Development
 
+- `just check` — lint, format check, then configure, build and test (what a bare `just` runs)
 - `just ci` - configure, build and test
+- `just list` - list recipes
 - `just test` - test only
 - `just format` — clang-format + shfmt in place
 - `just format-check` — fails if C++ isn't formatted
