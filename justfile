@@ -177,3 +177,7 @@ reload preset="user":
         kquitapp6 krunner || true
         setsid -f krunner --daemon
     fi
+
+# Bump the version from conventional commits and tag it.
+release:
+    cog bump --auto
