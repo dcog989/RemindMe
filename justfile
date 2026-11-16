@@ -181,3 +181,7 @@ reload preset="user":
 # Bump the version from conventional commits and tag it.
 release:
     cog bump --auto
+
+# Verify a commit message file, as the commit-msg hook passes it.
+commit-check file *args:
+    cog verify --file {{file}} {{args}}

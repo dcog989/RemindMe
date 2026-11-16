@@ -55,13 +55,13 @@ pre-commit:
 commit-msg:
   jobs:
     - name: conventional-commit
-      run: cog verify --file {1} --ignore-merge-commits --ignore-fixup-commits
+      run: just commit-check {1} --ignore-merge-commits --ignore-fixup-commits
       skip:
         - run: "! command -v cog >/dev/null 2>&1"
 
 pre-push:
   jobs:
     - name: build-and-test
-      run: cmake --workflow --preset user
+      run: just ci
       skip:
         - run: "test ! -e CMakeLists.txt"
