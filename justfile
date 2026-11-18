@@ -160,25 +160,7 @@ reload preset="user":
     cmake --preset {{preset}}
     cmake --build --preset {{preset}}
     cmake --install build/{{preset}}
-    # Drop the helper from any install prefix (kf6 = cmake, remindme = KDE Store launcher) so the
-    # freshly installed binary is the one activated.
-    pkill -f '[k]runner-remindme' || true
-    if systemctl --user cat plasma-krunner.service >/dev/null 2>&1; then
-        # Plasma 6 runs KRunner as a user service. Restarting it yields the single instance that
-        # owns org.kde.krunner; hand-starting another krunner instead makes the two race for the
-        # name, and the loser segfaults on exit (plasma-krunner.service has Restart=no, so it
-        # then stays dead).
-        pkill -f '[k]runner --daemon' || true
-        systemctl --user reset-failed plasma-krunner.service || true
-        systemctl --user restart plasma-krunner.service
-        systemctl --user is-active --quiet plasma-krunner.service || {
-            echo "krunner did not start; check: journalctl --user -u plasma-krunner.service" >&2
-            exit 1
-        }
-    else
-        kquitapp6 krunner || true
-        setsid -f krunner --daemon
-    fi
+    bash packaging/restart-krunner.sh
 
 # Bump the version from conventional commits and tag it.
 release:

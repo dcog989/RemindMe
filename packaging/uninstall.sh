@@ -2,16 +2,13 @@
 #
 # Remove the files a previous install recorded in the CMake install manifest.
 #
-#   packaging/uninstall.sh            # user install (~/.local)
-#   packaging/uninstall.sh --system   # system install (/usr, uses sudo)
+#   ./packaging/uninstall.sh            # user install (~/.local)
+#   ./packaging/uninstall.sh --system   # system install (/usr, uses sudo)
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$script_dir/.."
 
-# Defaults; the shared parser (packaging/preset-args.sh) overrides them from the arguments.
-preset="user"
-sudo=""
 # shellcheck source=preset-args.sh
 source "$script_dir/preset-args.sh" "$@"
 
@@ -27,7 +24,7 @@ while IFS= read -r file; do
     [ -n "$file" ] || continue
     # shellcheck disable=SC2086
     $sudo rm -f "$file"
-done < "$manifest"
+done <"$manifest"
 
 # The engine's runtime autostart entry is not in the install manifest; drop it too, so a login
 # does not try to run the removed binary.

@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 #
 # Restart KRunner so it reloads (or drops) the runner. Called by packaging/install.sh and
-# packaging/uninstall.sh after they change the installation.
+# packaging/uninstall.sh after they change the installation, and by `just reload`.
 #
 # Prefers the Plasma 6 user service. Hand-starting a second krunner instead of restarting the
 # service makes the two race for org.kde.krunner; the loser segfaults on exit and, since the unit
 # has Restart=no, the service then stays dead.
 set -euo pipefail
 
-# Drop a running helper so the freshly installed (or removed) binary is the one used.
-pkill -f 'libexec/kf6/[k]runner-remindme' || true
+# Drop a running helper from any install prefix (kf6 = cmake, remindme = KDE Store launcher) so
+# the freshly installed (or removed) binary is the one used.
+pkill -f '[k]runner-remindme' || true
 
 if systemctl --user cat plasma-krunner.service >/dev/null 2>&1; then
     pkill -f '[k]runner --daemon' || true
