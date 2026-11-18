@@ -14,54 +14,27 @@ From the KDE Store, inside KRunner:
 1. Open *System Settings → Search → Plasma Search*.
 2. Click *Get New Plugins…*.
 3. Search for *RemindMe* and click *Install*.
-4. Stop the running helper and restart KRunner: `pkill -f '[k]runner-remindme'`, then log out and back in or run `systemctl --user restart plasma-krunner.service`. KRunner reads the plugin list only at startup, and a helper that is already running keeps its old files.
-
-### Manual install from archive
-
-The archived binary is built on Fedora 43. It needs glibc 2.42 or newer and Qt/KF6 not older than
-Fedora 43 ships; on an older distribution, build from source (below).
-
-Download from <https://store.kde.org/p/2379079> then:
-
-```sh
-mkdir -p ~/.local/share/krunner-sources
-tar xzf ~/path/to/remindme-<version>.tar.gz -C ~/.local/share/krunner-sources
-krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-<version>
-pkill -f '[k]runner-remindme' || true
-systemctl --user restart plasma-krunner.service
-# Only now drop older extractions, e.g.:
-rm -rf ~/.local/share/krunner-sources/remindme-<previous-version>
-```
-
-> [!NOTE]
-> Name the new directory in the install command, as above. `krunner-plugininstaller` takes one path and ignores the rest, so a glob that matches an older extraction installs that older version.
-
-> [!NOTE]
-> Keep the extraction the plugin was installed from: the D-Bus service runs the launcher inside
-> that directory.
+4. Restart KRunner: `pkill -f '[k]runner-remindme'; systemctl --user restart plasma-krunner.service`.
 
 > [!NOTE]
 > Optionally, make RemindMe a favorite and move it above others via *System Settings → Search → Plasma Search*.
 
-### Uninstall
-
-Store install: uninstall the plugin from *Get New Plugins…*, then remove the files the launcher
-copied and the login entry. The timers are stored separately, so keep or delete them as you like:
+### From the release archive
 
 ```sh
-data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
-rm -f "$(dirname "$data_home")/libexec/remindme/krunner-remindme" \
-      "$data_home/applications/krunner-remindme.desktop" \
-      "$data_home/icons/hicolor/scalable/apps/io.github.dcog989.remindme.svg" \
-      "$data_home/knotifications6/krunner-remindme.notifyrc" \
-      "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/krunner-remindme.desktop"
-# Stop the helper; until it exits, its alarms still fire.
-pkill -f '[k]runner-remindme' || true
-# Optional: the stored timers and their .bak copies.
-rm -rf "$data_home/krunner-remindme"
+mkdir -p ~/.local/share/krunner-sources
+tar xzf remindme-<version>.tar.gz -C ~/.local/share/krunner-sources
+krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-<version>
+pkill -f '[k]runner-remindme'; systemctl --user restart plasma-krunner.service
 ```
 
-Source install: `./packaging/uninstall.sh`.
+Keep the extracted directory: the D-Bus service runs the launcher inside it. Pass the exact version path, not a glob; `krunner-plugininstaller` takes one path.
+
+### Uninstall
+
+Uninstall the plugin from *Get New Plugins…*, then restart KRunner. Timers are stored separately: they stay in `~/.local/share/krunner-remindme`, delete that directory to start empty.
+
+---
 
 ## Usage
 
@@ -74,7 +47,6 @@ Trigger words: `remindme` or `rme`.
 | Cancel by id          | `rme cancel 3`        |
 | Cancel by message     | `rme cancel meeting`  |
 | List timers to cancel | `rme cancel`          |
-| Usage / help          | `rme`                 |
 
 A ringing alarm that has not been snoozed or dismissed yet is listed by `rme list` and `rme cancel`, so it can be acknowledged from KRunner without finding its window.
 
@@ -98,28 +70,22 @@ While any timer waits, a tray icon appears too: clicking it opens the same *Remi
 
 ---
 
-## Technical
-
-### Development
+## Development
 
 Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6.9+, Extra CMake Modules 6.9+, `gettext` and `just`. Tests also need Qt `Test`. `just package` needs podman or docker; `just release` needs `cog` and `gh`.
 
 ```sh
 just --list               # list every recipe, with the justfile's own description
 
+just                      # Verify the repo: lint, format check, then configure, build and test.
 just ci                   # configure, build and test
-just check                # ci plus lint and format check (the default recipe)
 just install              # install a built preset
-just reload               # install and restart KRunner with the local runner
 just package              # build the KDE Store payload (needs podman or docker)
 just release              # bump, push, build the payload and publish the GitHub release
+just reload               # install and restart KRunner with the local runner
 ```
 
-### Install from source
-
-```sh
-just reload             # configure, build, install into ~/.local, restart KRunner
-```
+Uninstall: `./packaging/uninstall.sh`
 
 ---
 
