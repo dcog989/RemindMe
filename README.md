@@ -105,24 +105,14 @@ While any timer waits, a tray icon appears too: clicking it opens the same *Remi
 Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6.9+, Extra CMake Modules 6.9+, `gettext` and `just`. Tests also need Qt `Test`. `just package` needs podman or docker; `just release` needs `cog` and `gh`.
 
 ```sh
-just --list               # list available recipes
+just --list               # list every recipe, with the justfile's own description
 
-just                      # Verify the repo: lint, format check, then configure, build and test.
-just build                # Build a configured preset
-just check                # Verify the repo: lint, format check and the full ci workflow
-just ci                   # Configure, build and test in one command
-just clean                # Remove all build trees
-just doctor               # Report which optional tools are missing
-just format               # Format C++ sources and shell scripts in place
-just format-check         # Fail if C++ or shell sources are not formatted
-just install              # Install a built preset
-just lint                 # Run every available linter; missing tools and not-yet-added configs are skipped
-just package              # Build the KDE Store payload (prebuilt binary per architecture, in a container)
-just pot                  # Extract translatable strings into po/krunner_remindme.pot
-just release              # Bump the version from conventional commits and tag it.
-just reload               # Configure, build, reinstall and relaunch KRunner with the local runner
-just test                 # Run the test suite
-just tidy                 # Run clang-tidy over project sources
+just ci                   # configure, build and test
+just check                # ci plus lint and format check (the default recipe)
+just install              # install a built preset
+just reload               # install and restart KRunner with the local runner
+just package              # build the KDE Store payload (needs podman or docker)
+just release              # bump, push, build the payload and publish the GitHub release
 ```
 
 ### Install from source
