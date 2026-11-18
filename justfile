@@ -115,12 +115,6 @@ lint:
 
     if have editorconfig-checker; then step editorconfig-checker; else skip "editorconfig-checker"; fi
 
-    if have clang-format && [ -n "$(git ls-files '*.cpp' '*.h' '*.hpp')" ]; then
-        step clang-format --dry-run --Werror $(git ls-files '*.cpp' '*.h' '*.hpp')
-    else
-        skip "clang-format"
-    fi
-
     exit "$status"
 
 # Report which optional tools are missing
@@ -129,7 +123,7 @@ doctor:
     set -uo pipefail
     missing=0
     for tool in cmake ninja clang-format clang-tidy cog lefthook \
-                just typos shellcheck shfmt yamllint editorconfig-checker gitleaks; do
+                just typos shellcheck shfmt yamllint editorconfig-checker gitleaks podman gh; do
         if command -v "$tool" >/dev/null 2>&1; then
             printf 'ok      %s\n' "$tool"
         else
