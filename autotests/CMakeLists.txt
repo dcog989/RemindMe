@@ -8,6 +8,18 @@ ecm_add_test(remindmeenginetest.cpp TEST_NAME remindmeenginetest LINK_LIBRARIES 
 target_sources(remindmeenginetest PRIVATE ${REMINDME_CORE_SOURCES})
 target_include_directories(remindmeenginetest PRIVATE ${REMINDME_ENGINE_DIR})
 
+# The runner protocol without the bus: match grammar, id round trip, action scoping and the
+# ringing-alarm rows. The end-to-end suite below covers the same calls through KRunner.
+ecm_add_test(remindmeadaptertest.cpp TEST_NAME remindmeadaptertest LINK_LIBRARIES Qt6::Test Qt6::DBus KF6::CoreAddons KF6::I18n)
+target_sources(remindmeadaptertest PRIVATE
+    ${REMINDME_CORE_SOURCES}
+    ${REMINDME_RUNNER_DIR}/remindmeadaptor.cpp
+)
+target_include_directories(remindmeadaptertest PRIVATE
+    ${REMINDME_ENGINE_DIR}
+    ${REMINDME_RUNNER_DIR}
+)
+
 ecm_add_test(deadlineschedulertest.cpp TEST_NAME deadlineschedulertest LINK_LIBRARIES Qt6::Test)
 target_sources(deadlineschedulertest PRIVATE ${REMINDME_SCHEDULER_SOURCES})
 target_include_directories(deadlineschedulertest PRIVATE ${REMINDME_ENGINE_DIR})

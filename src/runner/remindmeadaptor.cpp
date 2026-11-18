@@ -19,13 +19,18 @@ namespace
 const QStringList s_triggerWords{QStringLiteral("remindme"), QStringLiteral("rme")};
 
 // "cancel" command with its separating space, so recognizing the prefix and stripping it share one
-// spelling instead of the latter hardcoding the length.
-const QString s_cancelCommand{QStringLiteral("cancel ")};
+// spelling instead of the latter hardcoding the length. The bare word is compared on its own.
+const QString s_cancelCommandWord{QStringLiteral("cancel")};
+const QString s_cancelCommand{s_cancelCommandWord + QLatin1Char(' ')};
+
+// The action id offered by Actions() and dispatched by Run(); one spelling for both.
+const QString s_cancelActionId{QStringLiteral("cancel")};
 
 // Match-id tags: Run() dispatches on them and the builders prepend them. Sharing the constants
-// keeps parsing and construction from drifting apart.
+// keeps parsing and construction from drifting apart. Each prefix carries its delimiter so an id
+// can only be read as the kind of row it was built as.
 const QString s_createPrefix{QStringLiteral("create:")};
-const QString s_timerPrefix{QStringLiteral("timer")};
+const QString s_timerPrefix{QStringLiteral("timer:")};
 const QString s_cancelMessagePrefix{QStringLiteral("cancelmsg:")};
 const QString s_cancelPrefix{QStringLiteral("cancel:")};
 // The "rme list" row shown when no timer is active: running it still opens the overview, which
@@ -79,6 +84,29 @@ std::optional<QString> termAfterTrigger(const QString &query)
     }
     return std::nullopt;
 }
+
+// The canonical spelling of whichever trigger alias the user typed, so hints echo it instead of
+// showing a word the user did not use.
+QString canonicalTrigger(const QString &typed)
+{
+    for (const QString &candidate : s_triggerWords) {
+        if (candidate.compare(typed, Qt::CaseInsensitive) == 0) {
+            return candidate;
+        }
+    }
+    return s_triggerWords.constFirst();
+}
+
+// The trigger word that starts a query (the term may follow it), in its canonical spelling.
+QString typedTrigger(const QString &query)
+{
+    const QString trimmed = query.trimmed();
+    qsizetype end = 0;
+    while (end < trimmed.size() && !trimmed.at(end).isSpace()) {
+        ++end;
+    }
+    return canonicalTrigger(trimmed.left(end));
+}
 }
 
 RemindmeAdaptor::RemindmeAdaptor(RemindmeEngine *engine)
@@ -101,21 +129,23 @@ RemoteMatches RemindmeAdaptor::Match(const QString &query)
     if (!term.has_value()) {
         return matches;
     }
+    // Passed to every builder so all hints name the alias the user typed.
+    const QString trigger = typedTrigger(query);
 
     if (term->isEmpty()) {
-        addUsageMatches(matches, query.trimmed());
+        addUsageMatches(matches, trigger);
         return matches;
     }
-    if (term->compare(QLatin1String("list"), Qt::CaseInsensitive) == 0) {
-        addListMatches(matches);
+    if (term->compare(s_listPrefix, Qt::CaseInsensitive) == 0) {
+        addListMatches(matches, trigger);
         return matches;
     }
-    if (term->compare(QLatin1String("cancel"), Qt::CaseInsensitive) == 0) {
-        addCancelMatches(matches, QString());
+    if (term->compare(s_cancelCommandWord, Qt::CaseInsensitive) == 0) {
+        addCancelMatches(matches, QString(), trigger);
         return matches;
     }
     if (term->startsWith(s_cancelCommand, Qt::CaseInsensitive)) {
-        addCancelMatches(matches, term->mid(s_cancelCommand.size()).trimmed());
+        addCancelMatches(matches, term->mid(s_cancelCommand.size()).trimmed(), trigger);
         return matches;
     }
 
@@ -125,7 +155,7 @@ RemoteMatches RemindmeAdaptor::Match(const QString &query)
 
 RemoteActions RemindmeAdaptor::Actions()
 {
-    return {RemoteAction{.id = QStringLiteral("cancel"), .text = i18n("Cancel timer"), .iconName = QStringLiteral("dialog-close")}};
+    return {RemoteAction{.id = s_cancelActionId, .text = i18n("Cancel timer"), .iconName = QStringLiteral("dialog-close")}};
 }
 
 void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
@@ -139,6 +169,11 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     bool opensReminders = false;
 
     if (const std::optional<QString> rest = stripPrefix(matchId, s_createPrefix)) {
+        // A create row offers no action (see makeMatch); if one arrives anyway, ignoring it beats
+        // creating the timer under an action the row never offered.
+        if (!actionId.isEmpty()) {
+            return;
+        }
         const Remindme::Duration duration = Remindme::parseDurationAndMessage(*rest);
         if (duration.valid) {
             m_engine->create(duration.seconds, duration.message);
@@ -146,8 +181,13 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_timerPrefix)) {
         // A listed timer opens the reminder overview, which shows every waiting timer; its
         // "cancel" action cancels just that one.
-        if (actionId == QLatin1String("cancel")) {
-            m_engine->cancel(rest->toInt());
+        bool idOk = false;
+        const int timerId = rest->toInt(&idOk);
+        if (!idOk) {
+            return;
+        }
+        if (actionId == s_cancelActionId) {
+            m_engine->cancel(timerId);
         } else {
             opensReminders = true;
         }
@@ -157,7 +197,11 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
         m_engine->cancelByMessage(*rest);
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelPrefix)) {
-        m_engine->cancel(rest->toInt());
+        bool idOk = false;
+        const int timerId = rest->toInt(&idOk);
+        if (idOk) {
+            m_engine->cancel(timerId);
+        }
     }
 
     if (!opensReminders) {
@@ -207,14 +251,8 @@ void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &tri
         {.command = QStringLiteral("cancel <message>"), .description = i18n("Cancel all timers matching given message")},
     };
 
-    // Echo the canonical spelling of whichever trigger alias the user typed.
-    QString prefix = trigger;
-    for (const QString &candidate : s_triggerWords) {
-        if (candidate.compare(trigger, Qt::CaseInsensitive) == 0) {
-            prefix = candidate;
-            break;
-        }
-    }
+    // The hint echoes the canonical spelling of whichever trigger alias the user typed.
+    const QString prefix = trigger;
 
     int index = 0;
     for (const Usage &usage : usages) {
@@ -255,13 +293,13 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
     matches.append(match);
 }
 
-void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
+void RemindmeAdaptor::addListMatches(RemoteMatches &matches, const QString &trigger) const
 {
     const QList<Remindme::TimerInfo> timers = m_engine->list();
-    if (timers.isEmpty()) {
+    if (timers.isEmpty() && !m_engine->hasPendingAlarms()) {
         // Activation still opens the overview window, which then reports that nothing is active.
         RemoteMatch match = makeMatch(s_listPrefix, i18n("No active timers."), relevanceInfo);
-        match.properties.insert(QStringLiteral("subtext"), i18n("Use rme with a duration to start one"));
+        match.properties.insert(QStringLiteral("subtext"), i18n("Use %1 with a duration to start one", trigger));
         matches.append(match);
         return;
     }
@@ -271,23 +309,25 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
         // the id is included so that "rme cancel <id>" can target a specific timer.
         RemoteMatch match = makeMatch(s_timerPrefix + QString::number(timer.id), timerText(timer), relevanceList);
         match.properties.insert(QStringLiteral("multiline"), true);
-        match.properties.insert(QStringLiteral("actions"), QStringList{QStringLiteral("cancel")});
+        match.properties.insert(QStringLiteral("actions"), QStringList{s_cancelActionId});
         matches.append(match);
     }
+    addPendingAlarmMatches(matches);
 }
 
-void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &target) const
+void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &target, const QString &trigger) const
 {
     if (target.isEmpty()) {
         // "rme cancel" with no target: list every active timer so the user can pick one to cancel
         const QList<Remindme::TimerInfo> timers = m_engine->list();
-        if (timers.isEmpty()) {
+        if (timers.isEmpty() && !m_engine->hasPendingAlarms()) {
             addSimpleMatch(matches, i18n("No timers"), i18n("There are no timers to cancel"));
             return;
         }
         for (const Remindme::TimerInfo &timer : timers) {
             addCancelTimerMatch(matches, timer);
         }
+        addPendingAlarmMatches(matches);
         return;
     }
 
@@ -306,13 +346,13 @@ void RemindmeAdaptor::addCancelMatches(RemoteMatches &matches, const QString &ta
         // The id names no active timer, or a "#" prefix pins the term as an id and a non-numeric
         // remainder is not a valid one. Either way it is reported as a missing id, never silently
         // accepted as a no-op cancellation.
-        addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use rme list to see timers"));
+        addSimpleMatch(matches, i18n("No timer with id %1", idString.toHtmlEscaped()), i18n("Use %1 list to see timers", trigger));
     } else {
         // The term is a message substring; validate it matches before offering, like the id path,
         // so the result is never a no-op. Both the offer and the actual cancellation use the same
         // case-insensitive match through the engine.
         if (m_engine->findTimersByMessage(target).isEmpty()) {
-            addSimpleMatch(matches, i18n("No timer matching \"%1\"", target.toHtmlEscaped()), i18n("Use rme list to see timers"));
+            addSimpleMatch(matches, i18n("No timer matching \"%1\"", target.toHtmlEscaped()), i18n("Use %1 list to see timers", trigger));
             return;
         }
         // The term may be pasted markup; the match text is rendered as rich text, so escape it
@@ -329,6 +369,19 @@ void RemindmeAdaptor::addCancelTimerMatch(RemoteMatches &matches, const Remindme
     matches.append(match);
 }
 
+void RemindmeAdaptor::addPendingAlarmMatches(RemoteMatches &matches) const
+{
+    // A fired alarm is not active, but it is still stored and holds one of the maxTimers slots
+    // until it is snoozed or dismissed. Cancel is the only thing to do with it, so the row carries
+    // that id and selecting it acknowledges the alarm.
+    for (const Remindme::TimerInfo &timer : m_engine->pendingAlarms()) {
+        RemoteMatch match = makeMatch(s_cancelPrefix + QString::number(timer.id), ringingText(timer), relevanceCancel);
+        match.properties.insert(QStringLiteral("subtext"), i18n("Alarm ringing — select to dismiss"));
+        match.properties.insert(QStringLiteral("multiline"), true);
+        matches.append(match);
+    }
+}
+
 void RemindmeAdaptor::addSimpleMatch(RemoteMatches &matches, const QString &text, const QString &subtext) const
 {
     RemoteMatch match = makeMatch(QString(), text, relevanceInfo);
@@ -342,6 +395,17 @@ QString RemindmeAdaptor::timerText(const Remindme::TimerInfo &timer) const
     // text does not truncate the row. krunner renders the <br> as rich text (multiline).
     const QString reminderTime = Remindme::formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline));
     QString text = i18n("#%1 %2", timer.id, reminderTime);
+    if (!timer.message.isEmpty()) {
+        text += QStringLiteral("<br>") + timer.message.toHtmlEscaped();
+    }
+    return text;
+}
+
+QString RemindmeAdaptor::ringingText(const Remindme::TimerInfo &timer) const
+{
+    // No due time: the deadline has passed, and the row is an alarm to acknowledge, not a timer
+    // that still waits. The "#id" shape stays for users who cancel by id.
+    QString text = i18n("Ringing: #%1", timer.id);
     if (!timer.message.isEmpty()) {
         text += QStringLiteral("<br>") + timer.message.toHtmlEscaped();
     }
