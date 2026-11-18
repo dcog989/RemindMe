@@ -70,7 +70,7 @@ Trigger words: `remindme` or `rme`.
 | Action                | Query                 |
 | --------------------- | --------------------- |
 | Create timer          | `rme 5`, `rme 3h msg` |
-| List active timers    | `rme list`            |
+| List active timers    | `rme`, `rme list`     |
 | Cancel by id          | `rme cancel 3`        |
 | Cancel by message     | `rme cancel meeting`  |
 | List timers to cancel | `rme cancel`          |

@@ -133,6 +133,9 @@ RemoteMatches RemindmeAdaptor::Match(const QString &query)
     const QString trigger = typedTrigger(query);
 
     if (term->isEmpty()) {
+        // Bare trigger behaves like "rme list" (its first row opens the timers window), with the
+        // syntax hints kept below it.
+        addListMatches(matches, trigger);
         addUsageMatches(matches, trigger);
         return matches;
     }
@@ -296,7 +299,8 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches, const QString &trig
     const QList<Remindme::TimerInfo> timers = m_engine->list();
     if (timers.isEmpty() && !m_engine->hasPendingAlarms()) {
         // Activation still opens the overview window, which then reports that nothing is active.
-        RemoteMatch match = makeMatch(s_listPrefix, i18n("No active timers."), relevanceInfo);
+        // Ranked with the timer rows so a bare trigger's first result is this one, not a hint.
+        RemoteMatch match = makeMatch(s_listPrefix, i18n("No active timers."), relevanceList);
         match.properties.insert(QStringLiteral("subtext"), i18n("Use %1 with a duration to start one", trigger));
         matches.append(match);
         return;

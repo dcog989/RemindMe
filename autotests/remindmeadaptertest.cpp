@@ -61,8 +61,11 @@ private Q_SLOTS:
 
         const RemoteMatches usage = adaptor->Match(QStringLiteral("remindme"));
         QVERIFY(!usage.isEmpty());
+        // The first row is the list row, so a bare trigger opens the timers window; the hints
+        // follow it, spelled with the alias the user typed.
+        QCOMPARE(usage.constFirst().id, QStringLiteral("list"));
         for (const RemoteMatch &match : usage) {
-            QVERIFY(match.text.startsWith(QStringLiteral("remindme ")));
+            QVERIFY(match.id == QStringLiteral("list") || match.text.startsWith(QStringLiteral("remindme ")));
         }
     }
 

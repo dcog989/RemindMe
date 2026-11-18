@@ -252,7 +252,7 @@ private Q_SLOTS:
 
     void testUsageMatch()
     {
-        // A bare trigger word lists the registered syntaxes as usage hints
+        // A bare trigger word lists the timers (here: none) and the registered syntaxes as hints
         const QList<QueryMatch> matches = query(QStringLiteral("rme"));
         QVERIFY(matches.size() >= 2);
         bool sawCreate = false;
@@ -265,12 +265,24 @@ private Q_SLOTS:
         QVERIFY(sawCreate); // the create syntax is shown, preferring the "rme" example
         QVERIFY(sawList);
 
-        // The long alias must get the same hints in its own spelling, not fall back to "rme"
+        // The long alias must get the same hints in its own spelling, not fall back to "rme".
+        // The list row comes first and carries no trigger spelling.
         const QList<QueryMatch> longMatches = query(QStringLiteral("remindme"));
         QVERIFY(longMatches.size() >= 2);
         for (const QueryMatch &match : longMatches) {
-            QVERIFY(match.text().startsWith(QLatin1String("remindme ")));
+            // KRunner prefixes the match id with the runner name ("remindme_list").
+            QVERIFY(match.id().endsWith(QLatin1String("_list")) || match.text().startsWith(QLatin1String("remindme ")));
         }
+    }
+
+    void testBareTriggerListsTimers()
+    {
+        // A bare trigger is an alias for "rme list": its top result is an active timer, which
+        // opens the timers window when activated.
+        QVERIFY(createTimer(QStringLiteral("10:00"), QStringLiteral("bare")) >= 1);
+        const QList<QueryMatch> matches = query(QStringLiteral("rme"));
+        QVERIFY(!matches.isEmpty());
+        QVERIFY(matches.constFirst().text().contains(QLatin1String("bare")));
     }
 
     void testInvalidDurationMatch()
