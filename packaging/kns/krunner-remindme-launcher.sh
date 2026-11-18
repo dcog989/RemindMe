@@ -29,10 +29,23 @@ mkdir -p "$(dirname "$binary")"
 install -m 755 "$payload" "$binary"
 
 # The staged app entry names the build prefix; point it at this copy so the alarm window's
-# window matching and task manager entry stay right.
-escaped="${binary//\\/\\\\}"
-escaped="${escaped//&/\\&}"
-sed -i "s|^Exec=.*|Exec=\"$escaped\"|" "$project_dir/share/applications/krunner-remindme.desktop"
+# window matching and task manager entry stay right. Quote it exactly like
+# RemindmeAutostart::execArgument() (Desktop Entry Exec rules: double quotes, in-quote specials
+# escaped, '%' doubled), then escape the body for sed's replacement text and wrap it in quotes.
+desktop_exec_argument() {
+    local s="$1"
+    s=${s//\\/\\\\}
+    s=${s//\"/\\\"}
+    s=${s//\`/\\\`}
+    s=${s//\$/\\\$}
+    s=${s//%/%%}
+    s=${s//\\/\\\\}  # sed replacement: a literal backslash must be doubled
+    s=${s//&/\\&}    # sed replacement: '&' means the whole match
+    s=${s//|/\\|}    # sed delimiter
+    printf '"%s"' "$s"
+}
+exec_arg=$(desktop_exec_argument "$binary")
+sed -i "s|^Exec=.*|Exec=$exec_arg|" "$project_dir/share/applications/krunner-remindme.desktop"
 
 # share/krunner/dbusplugins is not copied: krunner-plugininstaller already placed the runner
 # metadata and the D-Bus service file that runs this script.
