@@ -3,34 +3,23 @@
 # as the io.github.dcog989.remindme D-Bus service, which KRunner auto-activates on demand.
 add_executable(krunner-remindme
     engine/main.cpp
-    engine/deadlinescheduler.cpp
-    engine/deadlinescheduler.h
-    engine/timerfddeadlinescheduler.cpp
-    engine/timerfddeadlinescheduler.h
-    engine/qtimerdeadlinescheduler.cpp
-    engine/qtimerdeadlinescheduler.h
-    engine/remindmeengine.cpp
-    engine/remindmeengine.h
+    ${REMINDME_ENGINE_SOURCES}
+    # Headers, for IDE targets; the build does not need them.
     engine/timerinfo.h
-    engine/remindmetime.cpp
-    engine/remindmetime.h
-    engine/remindmealarmdialog.cpp
-    engine/remindmealarmdialog.h
-    engine/remindmealarmnotification.cpp
-    engine/remindmealarmnotification.h
-    engine/remindmealarmpresenter.cpp
-    engine/remindmealarmpresenter.h
-    engine/remindmereminderlistdialog.cpp
-    engine/remindmereminderlistdialog.h
-    engine/remindmealarmsound.cpp
-    engine/remindmealarmsound.h
-    engine/remindmeautostart.cpp
-    engine/remindmeautostart.h
-    engine/remindmetrayicon.cpp
-    engine/remindmetrayicon.h
-    runner/remindmeadaptor.cpp
-    runner/remindmeadaptor.h
-    runner/remotematch.h
+    ${REMINDME_ENGINE_DIR}/deadlinescheduler.h
+    ${REMINDME_ENGINE_DIR}/timerfddeadlinescheduler.h
+    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.h
+    ${REMINDME_ENGINE_DIR}/remindmeengine.h
+    ${REMINDME_ENGINE_DIR}/remindmetime.h
+    ${REMINDME_ENGINE_DIR}/remindmealarmdialog.h
+    ${REMINDME_ENGINE_DIR}/remindmealarmnotification.h
+    ${REMINDME_ENGINE_DIR}/remindmealarmpresenter.h
+    ${REMINDME_ENGINE_DIR}/remindmereminderlistdialog.h
+    ${REMINDME_ENGINE_DIR}/remindmealarmsound.h
+    ${REMINDME_ENGINE_DIR}/remindmeautostart.h
+    ${REMINDME_ENGINE_DIR}/remindmetrayicon.h
+    ${REMINDME_RUNNER_DIR}/remindmeadaptor.h
+    ${REMINDME_RUNNER_DIR}/remotematch.h
 )
 
 target_include_directories(krunner-remindme PRIVATE

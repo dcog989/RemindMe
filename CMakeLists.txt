@@ -55,6 +55,36 @@ configure_file(
     @ONLY
 )
 
+# Source groups shared by the executable and the tests, so a new engine file is listed once.
+set(REMINDME_ENGINE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/engine)
+set(REMINDME_RUNNER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/runner)
+# Both deadline schedulers are always built: the factory falls back to the QTimer one when
+# timerfd cannot be created.
+set(REMINDME_SCHEDULER_SOURCES
+    ${REMINDME_ENGINE_DIR}/deadlinescheduler.cpp
+    ${REMINDME_ENGINE_DIR}/timerfddeadlinescheduler.cpp
+    ${REMINDME_ENGINE_DIR}/qtimerdeadlinescheduler.cpp
+)
+set(REMINDME_CORE_SOURCES
+    ${REMINDME_SCHEDULER_SOURCES}
+    ${REMINDME_ENGINE_DIR}/remindmeengine.cpp
+    ${REMINDME_ENGINE_DIR}/remindmetime.cpp
+)
+set(REMINDME_UI_SOURCES
+    ${REMINDME_ENGINE_DIR}/remindmealarmdialog.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmnotification.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmpresenter.cpp
+    ${REMINDME_ENGINE_DIR}/remindmereminderlistdialog.cpp
+    ${REMINDME_ENGINE_DIR}/remindmealarmsound.cpp
+)
+set(REMINDME_ENGINE_SOURCES
+    ${REMINDME_CORE_SOURCES}
+    ${REMINDME_UI_SOURCES}
+    ${REMINDME_ENGINE_DIR}/remindmeautostart.cpp
+    ${REMINDME_ENGINE_DIR}/remindmetrayicon.cpp
+    ${REMINDME_RUNNER_DIR}/remindmeadaptor.cpp
+)
+
 add_subdirectory(src)
 
 if(BUILD_TESTING)
