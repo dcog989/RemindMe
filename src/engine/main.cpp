@@ -9,6 +9,7 @@
 #include "remindmealarmpresenter.h"
 #include "remindmeautostart.h"
 #include "remindmeengine.h"
+#include "remindmetrayicon.h"
 
 namespace
 {
@@ -78,6 +79,9 @@ int main(int argc, char **argv)
 
     // Owns alarm/reminder presentation and tracks whether anything is still on screen.
     AlarmPresenter presenter(engine);
+
+    // Visible only while reminders wait; clicking it opens the reminder overview.
+    RemindmeTrayIcon tray(engine);
 
     // Exit when there is nothing left to do; D-Bus activation restarts the helper on demand.
     // Drop the service name first so a call racing the exit is routed to a freshly activated

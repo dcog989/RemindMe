@@ -46,6 +46,8 @@ Trigger words: `remindme` or `rme`.
 
 Selecting a listed timer opens one *Reminders* window with every active timer, each row with its due time, Snooze and Cancel timer.
 
+While any timer waits, a tray icon appears too: clicking it opens the same *Reminders* window, and its tooltip shows when the next reminder is due.
+
 | Input          | Meaning                             |
 | -------------- | ----------------------------------- |
 | `rme 5`        | 5 minutes                           |
