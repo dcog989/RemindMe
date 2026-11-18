@@ -31,4 +31,5 @@ done <"$manifest"
 rm -f "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/krunner-remindme.desktop"
 
 echo "==> Removed installed files ($preset)"
+echo "Timers and their backups are kept in ${XDG_DATA_HOME:-$HOME/.local/share}/krunner-remindme; delete that directory to start empty."
 bash "$script_dir/restart-krunner.sh"

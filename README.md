@@ -14,7 +14,7 @@ From the KDE Store, inside KRunner:
 1. Open *System Settings → Search → Plasma Search*.
 2. Click *Get New Plugins…*.
 3. Search for *RemindMe* and click *Install*.
-4. Restart KRunner so it loads the new plugin: log out and back in, or run `systemctl --user restart plasma-krunner.service`. KRunner reads the plugin list only at startup, so a new plugin does not appear before this.
+4. Stop the running helper and restart KRunner: `pkill -f '[k]runner-remindme'`, then log out and back in or run `systemctl --user restart plasma-krunner.service`. KRunner reads the plugin list only at startup, and a helper that is already running keeps its old files.
 
 ### Manual install from archive
 
@@ -25,12 +25,16 @@ Download from <https://store.kde.org/p/2379079> then:
 
 ```sh
 mkdir -p ~/.local/share/krunner-sources
-tar xzf ~/path/to/remindme-*.tar.gz -C ~/.local/share/krunner-sources
-krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-*
+tar xzf ~/path/to/remindme-<version>.tar.gz -C ~/.local/share/krunner-sources
+krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-<version>
+pkill -f '[k]runner-remindme' || true
 systemctl --user restart plasma-krunner.service
 # Only now drop older extractions, e.g.:
 rm -rf ~/.local/share/krunner-sources/remindme-<previous-version>
 ```
+
+> [!NOTE]
+> Name the new directory in the install command, as above. `krunner-plugininstaller` takes one path and ignores the rest, so a glob that matches an older extraction installs that older version.
 
 > [!NOTE]
 > Keep the extraction the plugin was installed from: the D-Bus service runs the launcher inside
@@ -42,14 +46,19 @@ rm -rf ~/.local/share/krunner-sources/remindme-<previous-version>
 ### Uninstall
 
 Store install: uninstall the plugin from *Get New Plugins…*, then remove the files the launcher
-copied and the login entry:
+copied and the login entry. The timers are stored separately, so keep or delete them as you like:
 
 ```sh
-rm -f ~/.local/libexec/remindme/krunner-remindme \
-      ~/.local/share/applications/krunner-remindme.desktop \
-      ~/.local/share/icons/hicolor/scalable/apps/io.github.dcog989.remindme.svg \
-      ~/.local/share/knotifications6/krunner-remindme.notifyrc \
-      ~/.config/autostart/krunner-remindme.desktop
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+rm -f "$(dirname "$data_home")/libexec/remindme/krunner-remindme" \
+      "$data_home/applications/krunner-remindme.desktop" \
+      "$data_home/icons/hicolor/scalable/apps/io.github.dcog989.remindme.svg" \
+      "$data_home/knotifications6/krunner-remindme.notifyrc" \
+      "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/krunner-remindme.desktop"
+# Stop the helper; until it exits, its alarms still fire.
+pkill -f '[k]runner-remindme' || true
+# Optional: the stored timers and their .bak copies.
+rm -rf "$data_home/krunner-remindme"
 ```
 
 Source install: `./packaging/uninstall.sh`.
