@@ -45,6 +45,8 @@ jobs:
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Configure, build and test
         run: just ci
+      - name: Configure, build and test (AddressSanitizer)
+        run: just ci asan
 
   lint:
     name: Lint
