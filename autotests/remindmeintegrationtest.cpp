@@ -129,6 +129,9 @@ private Q_SLOTS:
         dbusDaemon = new QProcess(this);
         QProcessEnvironment daemonEnv = QProcessEnvironment::systemEnvironment();
         daemonEnv.insert(QStringLiteral("XDG_DATA_HOME"), stateDir->path());
+        // The helper writes the autostart entry under GenericConfigLocation; without this the test
+        // would edit the developer's real ~/.config/autostart entry.
+        daemonEnv.insert(QStringLiteral("XDG_CONFIG_HOME"), stateDir->path());
         daemonEnv.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
         dbusDaemon->setProcessEnvironment(daemonEnv);
         dbusDaemon->start(QStringLiteral("dbus-daemon"), {QStringLiteral("--session"), QStringLiteral("--print-address")});
@@ -150,12 +153,14 @@ private Q_SLOTS:
 
         qputenv("DBUS_SESSION_BUS_ADDRESS", busAddress.toUtf8());
         qputenv("XDG_DATA_HOME", stateDir->path().toUtf8()); // isolate the timer state
+        qputenv("XDG_CONFIG_HOME", stateDir->path().toUtf8()); // isolate the autostart entry
         qputenv("QT_QPA_PLATFORM", "offscreen"); // don't pop up alarm windows during tests
 
         runnerProcess = new QProcess(this);
         QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
         env.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), busAddress);
         env.insert(QStringLiteral("XDG_DATA_HOME"), stateDir->path());
+        env.insert(QStringLiteral("XDG_CONFIG_HOME"), stateDir->path());
         env.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
         runnerProcess->setProcessEnvironment(env);
         runnerProcess->setProcessChannelMode(QProcess::ForwardedChannels);
@@ -418,6 +423,18 @@ private Q_SLOTS:
 
         // The expired timer is removed by the engine and the alarm is shown/played headlessly
         QTRY_COMPARE_WITH_TIMEOUT(activeTimerCount(), 0, 5000);
+
+        // Presentation is what acknowledges the headless alarm: if the engine-to-presenter wiring
+        // were missing, the fired entry would still be listed as a ringing row.
+        const auto sawRingingRow = [this]() {
+            for (const QueryMatch &match : query(QStringLiteral("rme cancel"))) {
+                if (match.text().startsWith(QLatin1String("Ringing:"))) {
+                    return true;
+                }
+            }
+            return false;
+        };
+        QTRY_VERIFY_WITH_TIMEOUT(!sawRingingRow(), 5000);
     }
 
     void testTriggerWordsCoverSyntaxes()
