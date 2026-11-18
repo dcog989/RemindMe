@@ -50,10 +50,10 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     setAttribute(Qt::WA_DeleteOnClose);
 
     setWindowTitle(i18n("RemindMe timer finished"));
-    auto *layout = new QHBoxLayout(this);
+    auto *layout = new QVBoxLayout(this);
 
-    // Message and overdue line on the left, the controls at the right: the same row shape as a
-    // reminder overview row (remindmereminderlistdialog.cpp).
+    // Message and overdue line on top, the controls in a row below, so a long description never
+    // squeezes the snooze/dismiss row.
     const QString overdue = overdueText(timer.deadline, nowMs);
     // A timer without a message has no text column at all, so the controls are not pushed apart
     // by a stretch of empty window.
@@ -91,18 +91,21 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
         if (const QScreen *screen = QGuiApplication::primaryScreen()) {
             scroll->setMaximumHeight(screen->availableGeometry().height() / Remindme::dialogMaxScreenHeightShare);
         }
-        layout->addWidget(scroll, 1);
+        layout->addWidget(scroll);
     }
 
+    auto *controls = new QHBoxLayout;
     auto *snoozeSpin = new QSpinBox(this);
     snoozeSpin->setRange(1, Remindme::maxSnoozeMinutes);
     snoozeSpin->setValue(Remindme::snoozeDurationMs / (60 * 1000));
     snoozeSpin->setSuffix(i18n(" min"));
     auto *snoozeButton = new QPushButton(i18n("Snooze"), this);
     auto *dismissButton = new QPushButton(i18n("Dismiss"), this);
-    layout->addWidget(snoozeSpin);
-    layout->addWidget(snoozeButton);
-    layout->addWidget(dismissButton);
+    controls->addStretch(1);
+    controls->addWidget(snoozeSpin);
+    controls->addWidget(snoozeButton);
+    controls->addWidget(dismissButton);
+    layout->addLayout(controls);
 
     // Fixed to its content, like the overview: a fixed-size window cannot be dragged into KWin's
     // 150 px floor and never opens with empty space. The height follows the wrapped text, capped by
