@@ -1,6 +1,9 @@
 #include <QApplication>
 #include <QDBusConnection>
+#include <QDir>
 #include <QIcon>
+#include <QLockFile>
+#include <QStandardPaths>
 #include <QTimer>
 
 #include <KLocalizedString>
@@ -53,14 +56,28 @@ int main(int argc, char **argv)
     app.setQuitOnLastWindowClosed(false);
 
     // Build the object tree before taking the service name: the bus delivers a Match() call as
-    // soon as the name is owned, so the object must already exist. The name is still taken before
-    // any state-changing side effect (autostart write, alarm presentation), so a second activation
-    // racing this one exits here without duplicating them.
+    // soon as the name is owned, so the object must already exist. The instance lock below keeps
+    // the state side effects single when a second starter races this one; the service name check
+    // remains the protocol-level guard.
     QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
         qWarning() << "No D-Bus session bus available; cannot start" << s_serviceName;
         return 1;
     }
+    // Guard before the engine's state load: a second starter (the autostart entry racing a manual
+    // launch) must not read, back up or rewrite timers.json. The D-Bus name check below stays the
+    // protocol-level guard; this one keeps the state side effects single too.
+    const QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    QLockFile instanceLock(dataDir + QStringLiteral("/instance.lock"));
+    if (!dataDir.isEmpty()) {
+        if (!QDir().mkpath(dataDir)) {
+            qWarning() << "Could not create the state directory" << dataDir;
+        } else if (!instanceLock.tryLock()) {
+            qWarning() << "Another RemindMe instance is already running; exiting";
+            return 1;
+        }
+    }
+
     RemindmeEngine engine;
     new RemindmeAdaptor(&engine);
     if (!bus.registerObject(QStringLiteral("/"), &engine)) {
