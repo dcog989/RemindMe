@@ -39,6 +39,9 @@ public:
 
     void fire()
     {
+        // Both real schedulers disarm before emitting (single-shot); mirror that so a missing
+        // engine re-arm is visible to the tests.
+        deadline.reset();
         Q_EMIT deadlineReached();
     }
 
@@ -238,6 +241,48 @@ private Q_SLOTS:
         QFile remaining(stateFilePath());
         QVERIFY(remaining.open(QIODevice::ReadOnly));
         QVERIFY(QJsonDocument::fromJson(remaining.readAll()).isArray());
+    }
+
+    void testArmsEarliestDeadline()
+    {
+        const TimerInfo first = engine->create(10 * 60, QStringLiteral("first")).value();
+        const TimerInfo second = engine->create(2 * 60, QStringLiteral("second")).value();
+
+        // The engine arms the earliest deadline, not the one created last.
+        QVERIFY(scheduler->deadline == second.deadline);
+        QVERIFY(engine->cancel(second.id));
+        QVERIFY(scheduler->deadline == first.deadline);
+        QVERIFY(engine->cancel(first.id));
+        // Nothing left to wake for.
+        QVERIFY(!scheduler->deadline.has_value());
+    }
+
+    void testRearmsForTheNextTimerAfterExpiry()
+    {
+        // A missed re-arm after a deadline fires would leave every later timer silent.
+        const TimerInfo first = engine->create(60, QStringLiteral("first")).value();
+        const TimerInfo second = engine->create(120, QStringLiteral("second")).value();
+
+        fakeNow = first.deadline;
+        scheduler->fire();
+        QCOMPARE(engine->list().size(), 1);
+        QVERIFY(scheduler->deadline == second.deadline);
+
+        fakeNow = second.deadline;
+        scheduler->fire();
+        QVERIFY(engine->list().isEmpty());
+        QVERIFY(!scheduler->deadline.has_value());
+    }
+
+    void testSpuriousWakeRearms()
+    {
+        // A wake before the deadline expires nothing; the engine must still re-arm, otherwise the
+        // timer would never fire (the fallback's 500 ms sweep can wake early).
+        const TimerInfo timer = engine->create(60, QStringLiteral("tea")).value();
+
+        scheduler->fire();
+        QCOMPARE(engine->list().size(), 1);
+        QVERIFY(scheduler->deadline == timer.deadline);
     }
 
     void testInvalidStateOnDiskIsIgnored()

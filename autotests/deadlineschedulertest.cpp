@@ -58,6 +58,24 @@ private Q_SLOTS:
         QCOMPARE(spy.count(), 0);
     }
 
+    // The production scheduler must be disarmed too, not only the fallback: a timer left armed
+    // after the last timer was cancelled would keep waking the engine for a deadline that is gone.
+    void testTimerfdDisarmStopsWaking()
+    {
+        TimerfdDeadlineScheduler scheduler;
+        if (!scheduler.isUsable()) {
+            QSKIP("timerfd is unavailable in this environment");
+        }
+        QSignalSpy spy(&scheduler, &DeadlineScheduler::deadlineReached);
+
+        // Arm a deadline that would arrive inside the wait below, then disarm. The window between
+        // the two calls is microseconds; the wait must outlast the armed deadline.
+        scheduler.setNextDeadline(QDateTime::currentMSecsSinceEpoch() + 1000);
+        scheduler.setNextDeadline(std::nullopt);
+        QTest::qWait(1500);
+        QCOMPARE(spy.count(), 0);
+    }
+
     // The production scheduler: an absolute deadline already crossed (e.g. while the machine was
     // suspended) must fire immediately. That is what CLOCK_REALTIME plus TFD_TIMER_ABSTIME buys; a
     // relative wait would instead count down from resume and fire late.
