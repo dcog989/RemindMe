@@ -22,11 +22,7 @@ indent_size = 2
 [.{clang-tidy,ecrc,yamllint}]
 indent_size = 2
 
-# Shell and CMake scripts use 2 spaces
-[*.{bash,bashrc,cmake,fish,sh,zsh}]
-indent_size = 2
-[CMakeLists.txt]
-indent_size = 2
+# Shell and CMake scripts use the default 4 spaces (no override needed)
 
 # These use tabs
 [*.{go,Makefile,makefile,GNUMakefile}]

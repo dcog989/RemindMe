@@ -10,21 +10,21 @@ preset="user"
 sudo=""
 for arg in "$@"; do
     case "$arg" in
-        --system)
-            preset="system"
-            sudo="sudo"
-            ;;
-        --user)
-            preset="user"
-            sudo=""
-            ;;
-        -h|--help)
-            printf 'usage: %s [--user|--system]\n' "$(basename "$0")"
-            exit 0
-            ;;
-        *)
-            printf 'unknown option: %s\n' "$arg" >&2
-            exit 2
-            ;;
+    --system)
+        preset="system"
+        sudo="sudo"
+        ;;
+    --user)
+        preset="user"
+        sudo=""
+        ;;
+    -h | --help)
+        printf 'usage: %s [--user|--system]\n' "$(basename "$0")"
+        exit 0
+        ;;
+    *)
+        printf 'unknown option: %s\n' "$arg" >&2
+        exit 2
+        ;;
     esac
 done
