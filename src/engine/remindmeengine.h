@@ -55,6 +55,9 @@ public:
     // out of range (no timer is created).
     std::optional<Remindme::TimerInfo> create(qint32 durationSeconds, const QString &message);
     QList<Remindme::TimerInfo> list() const;
+    // Expired alarms still awaiting Snooze/Dismiss, id-ordered like list(). They are not active,
+    // so the runner shows them separately instead of leaving them invisible until acknowledged.
+    QList<Remindme::TimerInfo> pendingAlarms() const;
     // Whether any active timer exists / whether a timer with id exists in either set. Avoids the
     // value copy list() makes when the caller only needs a membership test; a fired alarm counts,
     // so "rme cancel <id>" can acknowledge the window that is still on screen.

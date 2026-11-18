@@ -243,6 +243,30 @@ private Q_SLOTS:
         QVERIFY(QJsonDocument::fromJson(remaining.readAll()).isArray());
     }
 
+    void testDuplicateIdInStateFileKeepsOneEntry()
+    {
+        // A hand-edited file can repeat an id. The later entry must replace the earlier one, or the
+        // same id ends up in the active and the fired set at once and fires a second time.
+        QFile file(stateFilePath());
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(
+            QJsonDocument(
+                QJsonArray{QJsonObject{{QStringLiteral("id"), 3}, {QStringLiteral("deadline"), 60000.0}, {QStringLiteral("message"), QStringLiteral("active")}},
+                           QJsonObject{{QStringLiteral("id"), 3},
+                                       {QStringLiteral("deadline"), 30000.0},
+                                       {QStringLiteral("message"), QStringLiteral("fired")},
+                                       {QStringLiteral("fired"), true}}})
+                .toJson());
+        file.close();
+
+        resetEngine();
+
+        QVERIFY(engine->list().isEmpty());
+        QCOMPARE(engine->pendingAlarms().size(), 1);
+        QCOMPARE(engine->pendingAlarms().constFirst().message, QStringLiteral("fired"));
+        QVERIFY(!scheduler->deadline.has_value()); // the fired entry does not arm the timer
+    }
+
     void testArmsEarliestDeadline()
     {
         const TimerInfo first = engine->create(10 * 60, QStringLiteral("first")).value();
@@ -375,6 +399,8 @@ private Q_SLOTS:
         // The fired alarm is not active, but is still pending and replayed to the host.
         QCOMPARE(engine->list().size(), 0);
         QVERIFY(engine->hasPendingAlarms());
+        QCOMPARE(engine->pendingAlarms().size(), 1);
+        QCOMPARE(engine->pendingAlarms().constFirst().id, timer.id);
         QSignalSpy replaySpy(engine.data(), &RemindmeEngine::timerExpired);
         engine->replayPendingAlarms();
         QCOMPARE(replaySpy.count(), 1);

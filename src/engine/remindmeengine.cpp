@@ -58,6 +58,11 @@ QList<Remindme::TimerInfo> RemindmeEngine::list() const
     return m_timers.values();
 }
 
+QList<Remindme::TimerInfo> RemindmeEngine::pendingAlarms() const
+{
+    return m_firedAlarms.values();
+}
+
 bool RemindmeEngine::isEmpty() const
 {
     return m_timers.isEmpty();
@@ -163,6 +168,10 @@ void RemindmeEngine::loadFromDisk()
         timer.deadline = object.value(QStringLiteral("deadline")).toInteger();
         timer.message = object.value(QStringLiteral("message")).toString();
         if (timer.id >= 0 && timer.deadline > 0) {
+            // An id must never live in both sets, even when a hand-edited file repeats one, so the
+            // later entry replaces the earlier one instead of resurrecting it next to its own alarm.
+            m_timers.remove(timer.id);
+            m_firedAlarms.remove(timer.id);
             // A fired entry was already shown and is awaiting Snooze/Dismiss; keep it out of the
             // active set so list() and scheduling ignore it while it stays persisted for replay.
             if (object.value(QStringLiteral("fired")).toBool()) {
