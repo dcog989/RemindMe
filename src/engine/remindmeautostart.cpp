@@ -2,11 +2,15 @@
 
 #include <KConfigGroup>
 #include <KDesktopFile>
+#include <KLocalizedString>
 
 #include <QCoreApplication>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+
+#include <utility>
 
 namespace
 {
@@ -41,6 +45,12 @@ void RemindmeAutostart::setActive(bool active)
     const QString exec = execArgument(QCoreApplication::applicationFilePath());
     const bool hidden = !active;
 
+    // Do not create an entry just to hide it: a user who never had a timer does not need the
+    // file, and it would show up as an unused item in System Settings.
+    if (!active && !QFile::exists(m_entryPath)) {
+        return;
+    }
+
     KDesktopFile file(m_entryPath);
     // Skip rewriting only when the entry already matches everything that depends on the active
     // state or the install prefix. Comparing Hidden alone would keep a stale Exec after the
@@ -52,13 +62,20 @@ void RemindmeAutostart::setActive(bool active)
         }
     }
 
-    QDir().mkpath(m_autostartDir);
+    if (!QDir().mkpath(m_autostartDir)) {
+        qWarning() << "Could not create autostart directory" << m_autostartDir;
+        return;
+    }
 
     KConfigGroup group = file.desktopGroup();
     group.writeEntry("Type", QStringLiteral("Application"));
-    group.writeEntry("Name", QStringLiteral("RemindMe Timer"));
+    group.writeEntry("Name", i18n("RemindMe Timer"));
+    group.writeEntry("Comment", i18n("Start, list and cancel timers"));
+    group.writeEntry("Icon", QStringLiteral("io.github.dcog989.remindme"));
     group.writeEntry("Exec", exec);
     group.writeEntry("Terminal", false);
     group.writeEntry("Hidden", hidden);
-    file.sync();
+    if (!file.sync()) {
+        qWarning() << "Could not write autostart entry" << m_entryPath;
+    }
 }

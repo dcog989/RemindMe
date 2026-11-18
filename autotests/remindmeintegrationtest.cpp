@@ -1,5 +1,8 @@
 #include <KRunner/AbstractRunnerTest>
 
+#include <KConfigGroup>
+#include <KDesktopFile>
+
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusReply>
@@ -208,6 +211,27 @@ private Q_SLOTS:
             }
         }
         QTRY_VERIFY(activeTimerCount() == 0);
+    }
+
+    void testAutostartTracksTimers()
+    {
+        const QString entryPath = stateDir->path() + QStringLiteral("/autostart/krunner-remindme.desktop");
+        const auto hidden = [&entryPath](bool fallback) {
+            KDesktopFile file(entryPath);
+            return file.desktopGroup().readEntry("Hidden", fallback);
+        };
+
+        // An idle helper must not create an unused entry.
+        QVERIFY(!QFile::exists(entryPath));
+
+        const int id = createTimer(QStringLiteral("10:00"), QStringLiteral("survives logout"));
+        QVERIFY(id >= 1);
+        QTRY_COMPARE_WITH_TIMEOUT(hidden(true), false, 5000);
+
+        const QList<QueryMatch> cancel = query(QStringLiteral("rme cancel %1").arg(id));
+        QCOMPARE(cancel.size(), 1);
+        manager->run(cancel.constFirst());
+        QTRY_COMPARE_WITH_TIMEOUT(hidden(false), true, 5000);
     }
 
     void testUsageMatch()

@@ -2,6 +2,7 @@
 
 #include <KConfigGroup>
 #include <KDesktopFile>
+#include <KLocalizedString>
 
 #include <QCoreApplication>
 #include <QFile>
@@ -28,6 +29,12 @@ private:
     }
 
 private Q_SLOTS:
+    void initTestCase()
+    {
+        // The app sets this in main(); without it i18n() warns on every call.
+        KLocalizedString::setApplicationDomain(QByteArrayLiteral("krunner_remindme"));
+    }
+
     void init()
     {
         tempDir.reset(new QTemporaryDir);
@@ -60,6 +67,37 @@ private Q_SLOTS:
         QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("/opt/100%")), QStringLiteral("\"/opt/100%%\""));
         // Double quotes and backslashes are escaped for the spec's quoted form
         QCOMPARE(RemindmeAutostart::execArgument(QStringLiteral("a\"b\\c")), QStringLiteral("\"a\\\"b\\\\c\""));
+    }
+
+    void testInactiveDoesNotCreateEntry()
+    {
+        // A user who never started a timer does not need an unused entry in System Settings.
+        RemindmeAutostart autostart(tempDir->path());
+        autostart.setActive(false);
+        QVERIFY(!QFile::exists(entryPath()));
+    }
+
+    void testCreatesMissingDirectory()
+    {
+        // On a fresh account the autostart directory may not exist yet; the entry is what makes a
+        // pending timer fire after the next login, so the write must create the directory.
+        const QString missingDir = tempDir->path() + QStringLiteral("/nested/autostart");
+        RemindmeAutostart autostart(missingDir);
+        autostart.setActive(true);
+        QVERIFY(QFile::exists(missingDir + QStringLiteral("/krunner-remindme.desktop")));
+    }
+
+    void testQuotedExecRoundTripsSpecialCharacters()
+    {
+        // The quoting is only useful if it survives KConfig's own escaping: a path containing the
+        // characters the Desktop Entry spec calls special must read back unchanged.
+        const QString path = QStringLiteral("/opt/100%/a$b`c\"d\\e");
+        KDesktopFile file(entryPath());
+        file.desktopGroup().writeEntry("Exec", RemindmeAutostart::execArgument(path));
+        QVERIFY(file.sync());
+
+        KDesktopFile reread(entryPath());
+        QCOMPARE(reread.desktopGroup().readEntry("Exec"), RemindmeAutostart::execArgument(path));
     }
 
     void testStaleExecIsRewritten()

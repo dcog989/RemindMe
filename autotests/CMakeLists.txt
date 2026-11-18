@@ -24,14 +24,14 @@ ecm_add_test(deadlineschedulertest.cpp TEST_NAME deadlineschedulertest LINK_LIBR
 target_sources(deadlineschedulertest PRIVATE ${REMINDME_SCHEDULER_SOURCES})
 target_include_directories(deadlineschedulertest PRIVATE ${REMINDME_ENGINE_DIR})
 
-ecm_add_test(remindmeautostarttest.cpp TEST_NAME remindmeautostarttest LINK_LIBRARIES Qt6::Test KF6::ConfigCore)
+ecm_add_test(remindmeautostarttest.cpp TEST_NAME remindmeautostarttest LINK_LIBRARIES Qt6::Test KF6::ConfigCore KF6::I18n)
 target_sources(remindmeautostarttest PRIVATE ${REMINDME_ENGINE_DIR}/remindmeautostart.cpp)
 target_include_directories(remindmeautostarttest PRIVATE ${REMINDME_ENGINE_DIR})
 
 # The runner is a DBus runner, exercised end to end via AbstractRunnerTest against a real
 # subprocess on a private session bus (krunner_configure_test picks the DBus branch because
 # krunner-remindme is an executable).
-ecm_add_test(remindmeintegrationtest.cpp TEST_NAME remindmeintegrationtest LINK_LIBRARIES Qt6::Test Qt6::DBus KF6::Runner)
+ecm_add_test(remindmeintegrationtest.cpp TEST_NAME remindmeintegrationtest LINK_LIBRARIES Qt6::Test Qt6::DBus KF6::Runner KF6::ConfigCore)
 target_compile_definitions(remindmeintegrationtest PRIVATE
     REMINDME_DBUS_SERVICE_NAME="${REMINDME_DBUS_SERVICE_NAME}"
 )
