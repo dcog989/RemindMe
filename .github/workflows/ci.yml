@@ -23,7 +23,7 @@ jobs:
   build-and-test:
     name: Build & test (KF6)
     runs-on: ubuntu-latest
-    container: archlinux@sha256:2fd1ae548076c67bcd41098ddd44e799058010e8d55f085d453dbb890e706860
+    container: &archlinux-image archlinux@sha256:2fd1ae548076c67bcd41098ddd44e799058010e8d55f085d453dbb890e706860
     steps:
       - name: Pin the package snapshot
         run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
@@ -33,7 +33,7 @@ jobs:
           # transaction ("Operation too slow"). Partial downloads resume, so retry it.
           for attempt in 1 2 3; do
             pacman -Syu --noconfirm --needed \
-              base-devel cmake ninja git \
+              base-devel cmake ninja git just \
               qt6-base krunner kcoreaddons ki18n knotifications kconfig \
               extra-cmake-modules && exit 0
             printf 'pacman attempt %s failed; retrying\n' "$attempt" >&2
@@ -49,7 +49,7 @@ jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-    container: archlinux@sha256:2fd1ae548076c67bcd41098ddd44e799058010e8d55f085d453dbb890e706860
+    container: *archlinux-image
     steps:
       - name: Pin the package snapshot
         run: printf 'Server = https://archive.archlinux.org/repos/%s/$repo/os/$arch\n' "$ARCHIVE_DATE" > /etc/pacman.d/mirrorlist
