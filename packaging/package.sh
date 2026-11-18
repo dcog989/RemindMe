@@ -45,6 +45,7 @@ work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 payload="$work/$name"
 mkdir -p "$payload/bin" "$payload/packaging/kns" dist
+cp LICENSE "$payload/"
 cp krunner-plugininstallerrc "$payload/"
 cp packaging/kns/krunner-remindme-launcher.sh "$payload/packaging/kns/"
 
@@ -98,6 +99,20 @@ for dir in applications icons knotifications6 krunner locale; do
     if [ -d "$first_stage/share/$dir" ]; then
         mkdir -p "$payload/share"
         cp -a "$first_stage/share/$dir" "$payload/share/"
+    fi
+done
+
+# The launcher copies these out of the payload; krunner-plugininstaller reads MetaDataFile from
+# it. A missing file here means a broken install for every store user, so fail the release.
+metadata="$payload/share/krunner/dbusplugins/plasma-runner-remindme.desktop"
+if [ ! -f "$metadata" ]; then
+    echo "the payload is missing $metadata; the installer would reject it" >&2
+    exit 1
+fi
+for arch in $arches; do
+    if [ ! -x "$payload/bin/krunner-remindme-$arch" ]; then
+        echo "the payload has no executable for $arch" >&2
+        exit 1
     fi
 done
 
