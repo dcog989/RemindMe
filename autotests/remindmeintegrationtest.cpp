@@ -247,6 +247,9 @@ private Q_SLOTS:
         QCOMPARE(matches.size(), 1);
         QVERIFY(matches.constFirst().text().contains(QLatin1String("pasta is ready!")));
         QVERIFY(matches.constFirst().subtext().isEmpty());
+        // A create row offers no runner action: Run() would otherwise create the timer while the
+        // stale "Cancel timer" action is what the user picked.
+        QVERIFY(matches.constFirst().actions().isEmpty());
     }
 
     void testRunCreateCreatesTimer()
@@ -415,6 +418,25 @@ private Q_SLOTS:
 
         // The expired timer is removed by the engine and the alarm is shown/played headlessly
         QTRY_COMPARE_WITH_TIMEOUT(activeTimerCount(), 0, 5000);
+    }
+
+    void testTriggerWordsCoverSyntaxes()
+    {
+        // Config() drives KRunner's trigger-word filter, while the syntax hints live in the
+        // .desktop. A word added to only one of them silently makes the plugin undiscoverable or
+        // never called.
+        const QDBusReply<QVariantMap> reply = QDBusConnection::sessionBus().call(
+            QDBusMessage::createMethodCall(serviceName(), QStringLiteral("/"), QStringLiteral("org.kde.krunner1"), QStringLiteral("Config")));
+        QVERIFY(reply.isValid());
+        const QStringList triggerWords = reply.value().value(QStringLiteral("TriggerWords")).toStringList();
+        QVERIFY(!triggerWords.isEmpty());
+
+        const QStringList syntaxes = runner->metadata().value(QStringLiteral("X-Plasma-Runner-Syntaxes"), QStringList());
+        QVERIFY(!syntaxes.isEmpty());
+        for (const QString &syntax : syntaxes) {
+            const QString firstWord = syntax.section(QLatin1Char(' '), 0, 0);
+            QVERIFY2(triggerWords.contains(firstWord), qPrintable(QStringLiteral("Syntax \"%1\" uses a trigger word Config() does not list").arg(syntax)));
+        }
     }
 };
 
