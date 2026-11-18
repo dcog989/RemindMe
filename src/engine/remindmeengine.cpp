@@ -52,7 +52,11 @@ std::optional<Remindme::TimerInfo> RemindmeEngine::create(qint32 durationSeconds
     timer.deadline = nowMs() + static_cast<qint64>(durationSeconds) * 1000;
     timer.message = message;
     m_timers.insert(timer.id, timer);
-    commitTimers();
+    // Report a timer that could not be persisted as not created: it would be gone after a restart.
+    if (!commitTimers()) {
+        m_timers.remove(timer.id);
+        return std::nullopt;
+    }
     return timer;
 }
 
@@ -84,16 +88,36 @@ bool RemindmeEngine::isFull() const
 
 bool RemindmeEngine::cancel(qint32 id)
 {
-    const bool removedActive = m_timers.remove(id) > 0;
-    // Clearing a fired alarm is how "Dismiss" acknowledges it after a restart.
-    const bool removedFired = m_firedAlarms.remove(id) > 0;
-    if (removedActive || removedFired) {
-        commitTimers();
-        // After persisting: a listener that closes a window may re-check idleness.
-        Q_EMIT timerRemoved(id);
-        return true;
+    const auto active = m_timers.constFind(id);
+    const auto fired = m_firedAlarms.constFind(id);
+    if (active == m_timers.cend() && fired == m_firedAlarms.cend()) {
+        return false;
     }
-    return false;
+    std::optional<Remindme::TimerInfo> activeCopy;
+    std::optional<Remindme::TimerInfo> firedCopy;
+    if (active != m_timers.cend()) {
+        activeCopy = active.value();
+    }
+    if (fired != m_firedAlarms.cend()) {
+        firedCopy = fired.value();
+    }
+
+    m_timers.remove(id);
+    // Clearing a fired alarm is how "Dismiss" acknowledges it after a restart.
+    m_firedAlarms.remove(id);
+    if (!commitTimers()) {
+        // The dismissal did not reach the disk; keep the entry so a restart does not resurrect it.
+        if (activeCopy) {
+            m_timers.insert(id, *activeCopy);
+        }
+        if (firedCopy) {
+            m_firedAlarms.insert(id, *firedCopy);
+        }
+        return false;
+    }
+    // After persisting: a listener that closes a window may re-check idleness.
+    Q_EMIT timerRemoved(id);
+    return true;
 }
 
 bool RemindmeEngine::cancelByMessage(const QString &message)
@@ -102,13 +126,28 @@ bool RemindmeEngine::cancelByMessage(const QString &message)
     if (matches.isEmpty()) {
         return false;
     }
+    QList<Remindme::TimerInfo> removedActive;
+    QList<Remindme::TimerInfo> removedFired;
     for (const Remindme::TimerInfo &timer : matches) {
         // An id lives in exactly one set, so removing from both is safe and also acknowledges a
         // fired alarm whose message matches.
-        m_timers.remove(timer.id);
-        m_firedAlarms.remove(timer.id);
+        if (m_timers.remove(timer.id) > 0) {
+            removedActive.append(timer);
+        }
+        if (m_firedAlarms.remove(timer.id) > 0) {
+            removedFired.append(timer);
+        }
     }
-    commitTimers();
+    if (!commitTimers()) {
+        // The cancellation did not reach the disk; keep the timers so a restart is consistent.
+        for (const Remindme::TimerInfo &timer : std::as_const(removedActive)) {
+            m_timers.insert(timer.id, timer);
+        }
+        for (const Remindme::TimerInfo &timer : std::as_const(removedFired)) {
+            m_firedAlarms.insert(timer.id, timer);
+        }
+        return false;
+    }
     for (const Remindme::TimerInfo &timer : matches) {
         Q_EMIT timerRemoved(timer.id);
     }
@@ -203,7 +242,7 @@ void RemindmeEngine::preserveStateFile()
     }
 }
 
-void RemindmeEngine::saveToDisk() const
+bool RemindmeEngine::saveToDisk() const
 {
     const QString path = m_stateFilePath;
     QDir().mkpath(QFileInfo(path).absolutePath());
@@ -226,14 +265,14 @@ void RemindmeEngine::saveToDisk() const
     QSaveFile file(path);
     if (!file.open(QIODevice::WriteOnly)) {
         qWarning() << "Could not open timer state file for writing" << path << file.errorString();
-        return;
+        return false;
     }
     // Owner-only: the file holds reminder text, which other local users should not be able to read.
     file.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner);
     if (file.write(QJsonDocument(array).toJson(QJsonDocument::Compact)) < 0) {
         qWarning() << "Could not write timer state file" << path << file.errorString();
         file.cancelWriting();
-        return;
+        return false;
     }
     // commit() only renames the temp file, so a power cut could drop the change after the caller
     // reported success. Sync the file before the rename and the directory after it.
@@ -242,18 +281,19 @@ void RemindmeEngine::saveToDisk() const
     }
     if (!file.commit()) {
         qWarning() << "Could not commit timer state file" << path << file.errorString();
-        return;
+        return false;
     }
     const QByteArray directoryPath = QFile::encodeName(QFileInfo(path).absolutePath());
     const int directoryFd = ::open(directoryPath.constData(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
     if (directoryFd < 0) {
         qWarning() << "Could not open timer state directory" << directoryPath << "errno" << errno;
-        return;
+        return true;
     }
     if (::fsync(directoryFd) != 0) {
         qWarning() << "Could not sync timer state directory" << directoryPath << "errno" << errno;
     }
     ::close(directoryFd);
+    return true;
 }
 
 void RemindmeEngine::scheduleExpiryCheck()
@@ -270,12 +310,15 @@ void RemindmeEngine::scheduleExpiryCheck()
     m_scheduler->setNextDeadline(nextDeadline);
 }
 
-void RemindmeEngine::commitTimers()
+bool RemindmeEngine::commitTimers()
 {
-    saveToDisk();
+    if (!saveToDisk()) {
+        return false;
+    }
     scheduleExpiryCheck();
     // Count fired alarms too: the host keeps autostart on while any alarm is unacknowledged.
     Q_EMIT timerCountChanged(m_timers.size() + m_firedAlarms.size());
+    return true;
 }
 
 qint64 RemindmeEngine::extendedDeadline(qint64 deadline, qint64 durationMs) const
@@ -283,11 +326,11 @@ qint64 RemindmeEngine::extendedDeadline(qint64 deadline, qint64 durationMs) cons
     return std::max(nowMs(), deadline) + durationMs;
 }
 
-void RemindmeEngine::snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs)
+bool RemindmeEngine::snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs)
 {
     timer.deadline = extendedDeadline(timer.deadline, durationMs);
     m_timers.insert(timer.id, timer);
-    commitTimers();
+    return commitTimers();
 }
 
 void RemindmeEngine::checkExpiredTimers()
@@ -313,11 +356,10 @@ void RemindmeEngine::checkExpiredTimers()
     }
 
     // Only persist when something actually changed; either way the expiry timer must be
-    // re-armed since it was single-shot and just fired.
-    if (expired.isEmpty()) {
+    // re-armed since it was single-shot and just fired. A failed save here cannot roll the alarm
+    // back: the user must still be told the timer finished, so it stays pending in memory.
+    if (expired.isEmpty() || !commitTimers()) {
         scheduleExpiryCheck();
-    } else {
-        commitTimers();
     }
 }
 
@@ -327,15 +369,31 @@ bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer, qint64 durationMs)
     // than restarting is handled by snoozeTimer()). Otherwise the timer is a fired alarm: drop it
     // from that set before snoozeTimer() re-inserts it into m_timers, since an id must live in
     // exactly one set.
-    const auto it = m_timers.constFind(timer.id);
-    if (it != m_timers.cend()) {
-        snoozeTimer(it.value(), durationMs);
+    const auto active = m_timers.constFind(timer.id);
+    if (active != m_timers.cend()) {
+        // The copy is required: snoozeTimer() replaces this map entry, so a reference would dangle
+        // before a failed save is rolled back.
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        Remindme::TimerInfo previous = active.value();
+        if (snoozeTimer(previous, durationMs)) {
+            return true;
+        }
+        // The snooze did not reach the disk; leave the timer as it was.
+        m_timers.insert(previous.id, previous);
+        return false;
+    }
+    const auto fired = m_firedAlarms.find(timer.id);
+    if (fired == m_firedAlarms.cend()) {
+        return false;
+    }
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization) -- same rollback reason.
+    Remindme::TimerInfo previous = fired.value();
+    m_firedAlarms.erase(fired);
+    if (snoozeTimer(previous, durationMs)) {
         return true;
     }
-    if (m_firedAlarms.remove(timer.id) > 0) {
-        snoozeTimer(timer, durationMs);
-        return true;
-    }
+    m_timers.remove(previous.id);
+    m_firedAlarms.insert(previous.id, previous);
     return false;
 }
 

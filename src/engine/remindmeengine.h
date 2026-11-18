@@ -91,15 +91,19 @@ private:
     void loadFromDisk();
     // Renames the state file aside so neither a later save nor a second corruption can destroy it.
     void preserveStateFile();
-    void saveToDisk() const;
+    // Writes the whole state; false when the state could not be persisted, so a caller can roll
+    // back instead of reporting a change that a restart would lose.
+    bool saveToDisk() const;
     void scheduleExpiryCheck();
-    // Persists m_timers and m_firedAlarms and re-arms the scheduler. Call after any mutation.
-    void commitTimers();
+    // Persists m_timers and m_firedAlarms, re-arms the scheduler and emits the count. False when the
+    // save failed: nothing else is done and the caller must restore the previous in-memory state.
+    bool commitTimers();
     // Extends deadline by durationMs, anchored to now if it has already passed (so snoozing an
     // expired timer doesn't leave it expired again immediately).
     qint64 extendedDeadline(qint64 deadline, qint64 durationMs) const;
-    // Extends timer's deadline and (re-)inserts it into m_timers; shared by both snooze() paths.
-    void snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs);
+    // Extends timer's deadline, (re-)inserts it into m_timers and commits; shared by both snooze()
+    // paths. False when the save failed; the caller restores the pre-snooze state.
+    bool snoozeTimer(Remindme::TimerInfo timer, qint64 durationMs);
 
     // Keyed by id so iteration is id-ordered: expiry alarms fire (and their dialogs stack) in
     // the order the timers were created, deterministic across runs.

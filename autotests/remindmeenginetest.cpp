@@ -4,6 +4,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -120,6 +121,23 @@ private Q_SLOTS:
         QCOMPARE(engine->list().size(), Remindme::maxTimers);
     }
 
+    void testCreateFailsWhenStateCannotBeSaved()
+    {
+        // The state path sits under a regular file, so mkpath and QSaveFile::open fail with ENOTDIR
+        // even for root (CI). A create that only exists in memory must not be reported as success.
+        QFile blocker(tempDir->filePath(QStringLiteral("blocker")));
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+
+        TestDeadlineScheduler failingScheduler([this]() {
+            return fakeNow;
+        });
+        RemindmeEngine failing(nullptr, tempDir->filePath(QStringLiteral("blocker/timers.json")), &failingScheduler);
+
+        QVERIFY(!failing.create(60, QStringLiteral("lost")).has_value());
+        QVERIFY(failing.list().isEmpty());
+    }
+
     void testCancelById()
     {
         engine->create(60, QStringLiteral("one"));
@@ -187,6 +205,19 @@ private Q_SLOTS:
         QCOMPARE(engine->create(60, QString()).value().id, 2);
     }
 
+    void testStateFileIsOwnerOnly()
+    {
+        // The file holds reminder text. QSaveFile keeps the umask's group/other bits unless they are
+        // cleared explicitly, so a missing setPermissions() must fail here.
+        QVERIFY(engine->create(60, QStringLiteral("private")).has_value());
+        const QFileDevice::Permissions permissions = QFile::permissions(stateFilePath());
+        const QFileDevice::Permissions owner = QFileDevice::ReadOwner | QFileDevice::WriteOwner;
+        const QFileDevice::Permissions others =
+            QFileDevice::ReadGroup | QFileDevice::WriteGroup | QFileDevice::ExeGroup | QFileDevice::ReadOther | QFileDevice::WriteOther | QFileDevice::ExeOther;
+        QVERIFY((permissions & owner) == owner);
+        QVERIFY((permissions & others) == QFileDevice::Permissions());
+    }
+
     void testExpiredOnRestart()
     {
         // Simulate a timer that expired while the helper process was stopped. The injected
@@ -233,6 +264,29 @@ private Q_SLOTS:
         QCOMPARE(engine->pendingAlarms().size(), 1);
         QCOMPARE(engine->pendingAlarms().constFirst().message, QStringLiteral("fired"));
         QVERIFY(!scheduler->deadline.has_value()); // the fired entry does not arm the timer
+    }
+
+    void testInvalidRowsOnDiskAreIgnored()
+    {
+        // A negative id or a non-positive deadline cannot name a real timer; row 3 has no deadline at
+        // all. Letting any of them through would create a timer that fires immediately on startup.
+        QFile file(stateFilePath());
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(
+            QJsonDocument(
+                QJsonArray{
+                    QJsonObject{{QStringLiteral("id"), -1}, {QStringLiteral("deadline"), 60000.0}, {QStringLiteral("message"), QStringLiteral("negative")}},
+                    QJsonObject{{QStringLiteral("id"), 2}, {QStringLiteral("deadline"), 0.0}, {QStringLiteral("message"), QStringLiteral("zero")}},
+                    QJsonObject{{QStringLiteral("id"), 3}, {QStringLiteral("message"), QStringLiteral("no deadline")}},
+                    QJsonObject{{QStringLiteral("id"), 4}, {QStringLiteral("deadline"), 60000.0}, {QStringLiteral("message"), QStringLiteral("kept")}}})
+                .toJson());
+        file.close();
+
+        resetEngine();
+
+        QCOMPARE(engine->list().size(), 1);
+        QCOMPARE(engine->list().constFirst().id, 4);
+        QCOMPARE(engine->create(60, QString()).value().id, 5); // recovered from the highest valid id
     }
 
     void testArmsEarliestDeadline()
@@ -313,24 +367,20 @@ private Q_SLOTS:
 
     void testUnreadableStateFileIsPreserved()
     {
-        QFile file(stateFilePath());
-        QVERIFY(file.open(QIODevice::WriteOnly));
-        file.write(R"([{"id":1,"deadline":1000,"message":"keep"}])");
-        file.close();
-        QVERIFY(file.setPermissions(QFileDevice::WriteOwner));
-        QFile probe(stateFilePath());
-        if (probe.open(QIODevice::ReadOnly)) {
-            probe.close();
-            QSKIP("permission bits are not enforced here; cannot simulate a read failure");
-        }
+        // A directory at the state path makes open() fail with EISDIR even for root, which is what
+        // CI runs as; permission bits would be ignored there and the test would skip. The path is
+        // still a real entry that preserveStateFile() must move aside, not overwrite.
+        QVERIFY(QDir(tempDir->path()).mkdir(QStringLiteral("timers.json")));
+        QVERIFY(QFileInfo(stateFilePath()).isDir());
 
         resetEngine();
         QCOMPARE(engine->list().size(), 0);
 
         // An unreadable file is moved aside, not replaced by the next save.
         QVERIFY(!QFile::exists(stateFilePath()));
-        const QStringList backups = QDir(tempDir->path()).entryList(QStringList{QStringLiteral("timers.json*.bak")}, QDir::Files);
+        const QStringList backups = QDir(tempDir->path()).entryList(QStringList{QStringLiteral("timers.json*.bak")}, QDir::AllEntries | QDir::NoDotAndDotDot);
         QCOMPARE(backups.size(), 1);
+        QVERIFY(QFileInfo(tempDir->filePath(backups.constFirst())).isDir());
         QCOMPARE(engine->create(60, QString()).value().id, 1);
         QVERIFY(QFile::exists(stateFilePath()));
     }
