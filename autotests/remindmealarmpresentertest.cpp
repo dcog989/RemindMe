@@ -114,6 +114,57 @@ private Q_SLOTS:
         QVERIFY(presenter.isPresenting());
     }
 
+    void testCancelFromTheEngineClosesTheAlarmWindow()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        QVERIFY(engine.create(60, QStringLiteral("tea")).has_value());
+        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
+        QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 1);
+
+        // "rme cancel 1": the engine drops the entry, so the window must go with it.
+        QVERIFY(engine.cancel(1));
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 0);
+        QVERIFY(!presenter.isPresenting());
+        QVERIFY(!engine.contains(1));
+    }
+
+    void testReplacingAnAlarmKeepsItsTimer()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        QVERIFY(engine.create(60, QStringLiteral("tea")).has_value());
+        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
+        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
+
+        // Replacing the window must not dismiss the timer it presents.
+        QVERIFY(engine.contains(1));
+        QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 1);
+    }
+
+    void testReminderOverviewWidthIsCapped()
+    {
+        // The window is fixed-size, so a long message must not widen it past the screen.
+        constexpr int maxOverviewWidth = 640;
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        presenter.presentReminders({timer(1, QString(500, QLatin1Char('x')))});
+
+        const QList<ReminderListDialog *> dialogs = visibleDialogs<ReminderListDialog>();
+        QCOMPARE(dialogs.size(), 1);
+        QVERIFY(dialogs.constFirst()->width() <= maxOverviewWidth);
+    }
+
     void testReminderOverviewReportsNoTimers()
     {
         QTemporaryDir tempDir;

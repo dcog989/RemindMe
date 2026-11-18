@@ -19,9 +19,12 @@
 
 namespace
 {
-// Floor for the window width, so a short list still gets a usable row instead of a narrow strip;
-// wider content (a long message) widens the window past this.
+// Floor for the window width, so a short list still gets a usable row instead of a narrow strip.
 constexpr int minWidth = 480;
+
+// Ceiling for the window width: a longer message is clipped in its row (and shown as its tooltip)
+// rather than widening this fixed-size window past the screen.
+constexpr int maxWidth = 640;
 
 // The overview opens at its rows' height, up to this share of the available screen; a longer list
 // scrolls instead of producing a window taller than the display.
@@ -54,7 +57,7 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
         // tall enough to show them all. Rows never scroll sideways; a message longer than the
         // window allows is clipped (and shown as a tooltip).
         scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        scroll->setMinimumWidth(rows->sizeHint().width());
+        scroll->setMinimumWidth(qMin(rows->sizeHint().width(), maxWidth));
         layout->addWidget(scroll);
     }
 
@@ -67,7 +70,7 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
     const int cap = screen ? screen->availableGeometry().height() / maxScreenHeightShare : 0;
     const QSize content = layout->sizeHint();
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
-    setFixedSize(qMax(minWidth, content.width()), cap > 0 ? qMin(content.height(), cap) : content.height());
+    setFixedSize(qMin(qMax(minWidth, content.width()), maxWidth), cap > 0 ? qMin(content.height(), cap) : content.height());
 }
 
 QWidget *ReminderListDialog::makeRow(const Remindme::TimerInfo &timer, bool withSeparator)

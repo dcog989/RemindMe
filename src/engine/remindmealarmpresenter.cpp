@@ -12,6 +12,13 @@ AlarmPresenter::AlarmPresenter(RemindmeEngine &engine, QObject *parent)
     : QObject(parent)
     , m_engine(engine)
 {
+    // A cancellation from KRunner ("rme cancel ...") acknowledges the alarm, so its window must not
+    // keep ringing for a timer the engine no longer has.
+    connect(&m_engine, &RemindmeEngine::timerRemoved, this, [this](qint32 id) {
+        if (RemindmeAlarmDialog *dialog = m_dialogs.value(id)) {
+            dialog->close();
+        }
+    });
 }
 
 void AlarmPresenter::presentExpiry(const Remindme::TimerInfo &timer)
@@ -102,8 +109,11 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer)
     dialog->activateWindow();
 
     // A re-presented alarm for the same timer replaces its window instead of stacking a duplicate.
+    // Hide it before deleting: close() would emit rejected, which dismisses the timer this window
+    // presents.
     if (previous) {
-        previous->close();
+        previous->hide();
+        previous->deleteLater();
     }
 }
 
@@ -113,8 +123,12 @@ void AlarmPresenter::presentSound(const Remindme::TimerInfo &timer)
     // Count the sound before sending: sendEvent() is asynchronous, and the engine's count signal
     // that reaches the quit check runs first.
     ++m_pendingSoundCount;
-    // KNotification auto-deletes on close, so closed() is the last chance to react.
-    connect(sound, &KNotification::closed, this, &AlarmPresenter::onSoundClosed);
+    // A one-shot notification is the headless form of the alarm window, so closing it acknowledges
+    // the fired alarm; otherwise the entry stays pending and replays on every activation.
+    connect(sound, &KNotification::closed, this, [this, id = timer.id]() {
+        m_engine.cancel(id);
+        onSoundClosed();
+    });
     sound->sendEvent();
 }
 
