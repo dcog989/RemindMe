@@ -231,8 +231,13 @@ void RemindmeAdaptor::addCreateMatch(RemoteMatches &matches, const QString &term
         addSimpleMatch(matches, i18n("Invalid: %1", term.toHtmlEscaped()), i18n("Use e.g. 5, 20s, 4h, or 1:30 (min:s)"));
         return;
     }
+    if (m_engine->isFull()) {
+        addSimpleMatch(matches, i18n("Too many timers"), i18n("Cancel or dismiss one first"));
+        return;
+    }
 
-    const QDateTime deadline = QDateTime::currentDateTime().addSecs(duration.seconds);
+    // The engine's clock, not the wall clock, so the previewed time is the stored deadline.
+    const QDateTime deadline = QDateTime::fromMSecsSinceEpoch(m_engine->nowMs() + static_cast<qint64>(duration.seconds) * 1000);
     // Hide seconds only when hours are displayed, folding them into the minutes (nearest);
     // formatSpelloutDuration otherwise silently drops them. Below an hour it shows them.
     const qint64 durationMs = static_cast<qint64>(duration.seconds) * 1000;
