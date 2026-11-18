@@ -1,5 +1,6 @@
 #include "remindmetime.h"
 
+#include <KLocalizedString>
 #include <QLocale>
 #include <QObject>
 #include <QTest>
@@ -10,6 +11,12 @@ class RemindmeTimeTest : public QObject
 {
     Q_OBJECT
 private Q_SLOTS:
+    void initTestCase()
+    {
+        // A domain with no installed catalog, so i18n returns the source strings the assertions spell out.
+        KLocalizedString::setApplicationDomain(QByteArrayLiteral("remindme-autotest"));
+    }
+
     void testBareNumberIsMinutes()
     {
         const Duration duration = parseDurationAndMessage(QStringLiteral("5"));
@@ -122,6 +129,67 @@ private Q_SLOTS:
         QCOMPARE(dot.seconds, 30);
     }
 
+    void testGroupedNumberStaysWhole()
+    {
+        // In a dot-grouping locale "1.500" is 1500 minutes, not 1.5, while a one-digit fraction
+        // still uses the dot alias.
+        const QLocale previous = QLocale();
+        QLocale::setDefault(QLocale(QLocale::German));
+        const Duration grouped = parseDurationAndMessage(QStringLiteral("1.500"));
+        const Duration fraction = parseDurationAndMessage(QStringLiteral("1.5"));
+        const Duration leadingZero = parseDurationAndMessage(QStringLiteral("0.500h"));
+        QLocale::setDefault(previous);
+        QVERIFY(grouped.valid);
+        QCOMPARE(grouped.seconds, 1500 * 60);
+        QVERIFY(fraction.valid);
+        QCOMPARE(fraction.seconds, 90);
+        QVERIFY(leadingZero.valid);
+        QCOMPARE(leadingZero.seconds, 30 * 60);
+    }
+
+    void testEnglishGroupSeparator()
+    {
+        const QLocale previous = QLocale();
+        QLocale::setDefault(QLocale(QLocale::English, QLocale::UnitedStates));
+        const Duration grouped = parseDurationAndMessage(QStringLiteral("1,234"));
+        const Duration partialGroup = parseDurationAndMessage(QStringLiteral("1,5"));
+        QLocale::setDefault(previous);
+        // Well-formed grouping is a whole number; a partial group is not a fraction.
+        QVERIFY(grouped.valid);
+        QCOMPARE(grouped.seconds, 1234 * 60);
+        QVERIFY(!partialGroup.valid);
+    }
+
+    void testDocumentedFractionHasWholePart()
+    {
+        // README documents "5.5" as 5 minutes 30 seconds.
+        const Duration duration = parseDurationAndMessage(QStringLiteral("5.5"));
+        QVERIFY(duration.valid);
+        QCOMPARE(duration.seconds, 5 * 60 + 30);
+    }
+
+    void testFormatReminderTime()
+    {
+        const QDate today = QDate::currentDate();
+        const QTime time(14, 30);
+        const QString timeText = QLocale().toString(time, QLocale::ShortFormat);
+
+        const QString todayText = formatReminderTime(QDateTime(today, time));
+        QVERIFY(todayText.startsWith(QStringLiteral("Today at ")));
+        QVERIFY(todayText.endsWith(timeText));
+        QVERIFY(formatReminderTime(QDateTime(today, time), false).startsWith(QStringLiteral("today at ")));
+
+        const QString tomorrowText = formatReminderTime(QDateTime(today.addDays(1), time));
+        QVERIFY(tomorrowText.startsWith(QStringLiteral("Tomorrow at ")));
+        QVERIFY(tomorrowText.endsWith(timeText));
+
+        const QString laterText = formatReminderTime(QDateTime(today.addDays(5), time));
+        QVERIFY(!laterText.contains(QLatin1String("Today")));
+        QVERIFY(!laterText.contains(QLatin1String("Tomorrow")));
+        QVERIFY(laterText.contains(QLocale().toString(today.addDays(5), QLocale::ShortFormat)));
+        QVERIFY(laterText.endsWith(timeText));
+    }
+
     void testZeroIsInvalid()
     {
         QVERIFY(!parseDurationAndMessage(QStringLiteral("0")).valid);
@@ -192,7 +260,7 @@ private Q_SLOTS:
         // Must be range-checked in the double domain before qRound64, which is undefined
         // out of range and must not be reached.
         QVERIFY(!parseDurationAndMessage(QStringLiteral("1.0e300")).valid);
-        QVERIFY(!parseDurationAndMessage(QStringLiteral("1e300h")).valid);
+        QVERIFY(!parseDurationAndMessage(QStringLiteral("1.0e300h")).valid);
     }
 };
 

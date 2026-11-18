@@ -24,13 +24,35 @@ std::optional<int> parseLocaleInt(const QString &text)
 
 namespace
 {
-// Parses numberPart as a whole number (e.g. "5") or, when it carries the locale's decimal
-// separator with the ASCII dot accepted as an alias, a fraction ("0.5"), scaled by multiplier.
-// Returns the scaled seconds, or nullopt when numberPart is not a number in either form.
+// Parses a well-formed grouped integer ("1.500" in de_DE, "1,234" in en_GB) as a whole number.
+// The leading-zero guard keeps "0.500" / "0,500" a fraction or a malformed group, never a 500.
+std::optional<qint64> parseGroupedNumber(const QString &numberPart, qint64 multiplier)
+{
+    const QLocale locale;
+    const QString groupSeparator = locale.groupSeparator();
+    if (numberPart.startsWith(QLatin1Char('0')) && numberPart.size() > 1
+        && (numberPart.at(1) == QLatin1Char('.') || (!groupSeparator.isEmpty() && groupSeparator.startsWith(numberPart.at(1))))) {
+        return std::nullopt;
+    }
+    bool ok = false;
+    const int value = locale.toInt(numberPart, &ok);
+    if (!ok) {
+        return std::nullopt;
+    }
+    return static_cast<qint64>(value) * multiplier;
+}
+
+// Parses numberPart as a whole number (e.g. "5" or a locale-grouped "1.500") or, when it carries
+// the locale's decimal separator with the ASCII dot accepted as an alias, a fraction ("0.5"),
+// scaled by multiplier. Returns the scaled seconds, or nullopt when numberPart is not a number in
+// any form.
 std::optional<qint64> parseNumberPart(const QString &numberPart, qint64 multiplier)
 {
     if (const std::optional<int> number = parseLocaleInt(numberPart)) {
         return static_cast<qint64>(*number) * multiplier;
+    }
+    if (const std::optional<qint64> grouped = parseGroupedNumber(numberPart, multiplier)) {
+        return grouped;
     }
     const QLocale locale;
     const QString decimalPoint = locale.decimalPoint();

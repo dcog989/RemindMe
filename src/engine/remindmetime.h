@@ -16,8 +16,8 @@ struct Duration {
 };
 
 // Parses text as one whole number through the system locale, so native digits work, while
-// rejecting group separators: a value such as "1,5" or "1.5" must not silently read as 15 under a
-// locale that groups that way. Returns nullopt when text is not a complete number.
+// rejecting group separators: "1,234" is not 1234 here. Returns nullopt when text is not a
+// complete number. The duration parser accepts well-formed grouping in its own number path.
 std::optional<int> parseLocaleInt(const QString &text);
 
 Duration parseDurationAndMessage(const QString &input);
