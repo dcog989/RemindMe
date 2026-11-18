@@ -75,7 +75,6 @@ set(REMINDME_UI_SOURCES
     ${REMINDME_ENGINE_DIR}/remindmealarmnotification.cpp
     ${REMINDME_ENGINE_DIR}/remindmealarmpresenter.cpp
     ${REMINDME_ENGINE_DIR}/remindmereminderlistdialog.cpp
-    ${REMINDME_ENGINE_DIR}/remindmealarmsound.cpp
 )
 set(REMINDME_ENGINE_SOURCES
     ${REMINDME_CORE_SOURCES}

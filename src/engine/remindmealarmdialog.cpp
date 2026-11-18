@@ -2,18 +2,23 @@
 
 #include <QDate>
 #include <QDateTime>
+#include <QFrame>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLocale>
+#include <QPointer>
 #include <QPushButton>
+#include <QScreen>
+#include <QScrollArea>
 #include <QSpinBox>
+#include <QTimer>
 #include <QVBoxLayout>
 
 #include <KFormat>
 #include <KLocalizedString>
 
 #include "remindmealarmnotification.h"
-#include "remindmealarmsound.h"
 #include "remindmeengine.h"
 #include "remindmetime.h"
 
@@ -25,6 +30,10 @@ constexpr int minWidth = 480;
 // Ceiling for the width: a long message wraps inside the window instead of widening it across
 // the screen.
 constexpr int maxWidth = 640;
+
+// The text column scrolls once it would exceed this share of the screen, so a long message cannot
+// make the fixed-size window taller than the display (same bound as the reminder overview).
+constexpr int maxScreenHeightShare = 3;
 
 // Text for the "overdue" line shown when an expired timer surfaces later than its deadline (e.g.
 // the system was off at the time). Missing the deadline by less than the notice threshold is
@@ -68,6 +77,9 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
             auto *messageLabel = new QLabel(timer.message, this);
             messageLabel->setTextFormat(Qt::PlainText);
             messageLabel->setWordWrap(true);
+            // A single unbroken word cannot wrap, so the fixed width clips it; the tooltip is the
+            // only place the whole message stays readable.
+            messageLabel->setToolTip(timer.message.toHtmlEscaped());
             textLayout->addWidget(messageLabel);
         }
         // A timer that expired while the system was off (e.g. a shutdown) surfaces later than its
@@ -75,11 +87,21 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
         // that fired on time.
         if (!overdue.isEmpty()) {
             auto *overdueLabel = new QLabel(overdue, this);
+            overdueLabel->setTextFormat(Qt::PlainText);
             overdueLabel->setWordWrap(true);
             textLayout->addWidget(overdueLabel);
         }
         textLayout->addStretch();
-        layout->addWidget(text, 1);
+
+        auto *scroll = new QScrollArea(this);
+        scroll->setWidgetResizable(true);
+        scroll->setWidget(text);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        if (const QScreen *screen = QGuiApplication::primaryScreen()) {
+            scroll->setMaximumHeight(screen->availableGeometry().height() / maxScreenHeightShare);
+        }
+        layout->addWidget(scroll, 1);
     }
 
     auto *snoozeSpin = new QSpinBox(this);
@@ -93,12 +115,13 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     layout->addWidget(dismissButton);
 
     // Fixed to its content, like the overview: a fixed-size window cannot be dragged into KWin's
-    // 150 px floor and never opens with empty space. The height follows the wrapped text. The
-    // width floor only applies when there is text to fill it; a controls-only alarm opens narrow.
+    // 150 px floor and never opens with empty space. The height follows the wrapped text, capped by
+    // the scroll area above. The width floor only applies when there is text to fill it; a
+    // controls-only alarm opens narrow.
     layout->activate();
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
     const int contentWidth = qMin(qMax(layout->sizeHint().width(), hasText ? minWidth : 0), maxWidth);
-    setFixedSize(contentWidth, layout->hasHeightForWidth() ? layout->heightForWidth(contentWidth) : layout->sizeHint().height());
+    setFixedSize(contentWidth, layout->sizeHint().height());
 
     connect(snoozeButton, &QPushButton::clicked, this, [this, snoozeSpin]() {
         Q_EMIT snoozeRequested(snoozeSpin->value());
@@ -110,7 +133,14 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     // left pending while the process exits, and only shown again on the next activation.
     connect(this, &QDialog::rejected, this, &RemindmeAlarmDialog::dismissRequested);
 
-    // The expiry alarm loops the "remindme" sound until the dialog closes; AlarmSound is parented
-    // to the dialog, so dismissing or snoozing (which destroys it) stops the sound.
-    new AlarmSound(timer.message, this);
+    // The expiry alarm loops the "remindme" sound until the dialog closes; the notification is
+    // parented here, so snoozing or dismissing (which destroys the dialog) stops the sound, and the
+    // guard stops a long loop while the window stays open.
+    QPointer<KNotification> sound = Remindme::makeAlarmNotification(timer.message, KNotification::LoopSound, this);
+    sound->sendEvent();
+    QTimer::singleShot(Remindme::maxAlarmSoundMs, this, [sound]() {
+        if (sound) {
+            sound->close();
+        }
+    });
 }

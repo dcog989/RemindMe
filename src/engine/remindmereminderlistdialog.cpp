@@ -95,7 +95,7 @@ QWidget *ReminderListDialog::makeRow(const Remindme::TimerInfo &timer, bool with
 
     auto *descriptionLabel = new QLabel(timer.message.isEmpty() ? i18n("No description") : timer.message, text);
     descriptionLabel->setTextFormat(Qt::PlainText);
-    descriptionLabel->setToolTip(timer.message);
+    descriptionLabel->setToolTip(timer.message.toHtmlEscaped());
     // Italic sets the description apart from the due line above it.
     QFont descriptionFont = descriptionLabel->font();
     descriptionFont.setItalic(true);

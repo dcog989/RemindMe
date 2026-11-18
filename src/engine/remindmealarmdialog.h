@@ -12,6 +12,10 @@ constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
 
 // Upper bound of the snooze spin box, in minutes (24 h).
 constexpr int maxSnoozeMinutes = 60 * 24;
+
+// Maximum time the looping expiry alarm sound plays; the alarm window itself stays open until the
+// user snoozes or dismisses it.
+constexpr qint64 maxAlarmSoundMs = 10 * 60 * 1000;
 }
 
 // The expiry alarm: title "RemindMe timer finished", the timer's message, and a looping sound

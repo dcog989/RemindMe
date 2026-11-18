@@ -15,7 +15,6 @@ add_executable(krunner-remindme
     ${REMINDME_ENGINE_DIR}/remindmealarmnotification.h
     ${REMINDME_ENGINE_DIR}/remindmealarmpresenter.h
     ${REMINDME_ENGINE_DIR}/remindmereminderlistdialog.h
-    ${REMINDME_ENGINE_DIR}/remindmealarmsound.h
     ${REMINDME_ENGINE_DIR}/remindmeautostart.h
     ${REMINDME_ENGINE_DIR}/remindmetrayicon.h
     ${REMINDME_RUNNER_DIR}/remindmeadaptor.h

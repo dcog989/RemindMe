@@ -33,8 +33,8 @@ remindme/
 │   │   ├── remindmealarmdialog.{h,cpp}  # Snooze/Dismiss window
 │   │   ├── remindmealarmnotification.{h,cpp} # shared alarm KNotification factory
 │   │   ├── remindmealarmpresenter.{h,cpp} # dialog/sound presentation + lifetime
-│   │   ├── remindmealarmsound.{h,cpp}   # looping expiry-alarm sound + stop timer
 │   │   ├── remindmereminderlistdialog.{h,cpp} # overview window listing every waiting timer
+│   │   ├── remindmetrayicon.{h,cpp}     # tray icon shown while timers wait
 │   │   └── remindmeautostart.{h,cpp}    # session autostart toggling
 │   └── runner/                          # org.kde.krunner1 D-Bus runner adaptor
 │       ├── remindmeadaptor.{h,cpp}      # Match/Run/Actions/Config/Teardown
@@ -44,7 +44,7 @@ remindme/
 │   ├── plasma-runner-remindme.desktop   # DBus2 runner metadata
 │   ├── krunner-remindme.desktop         # application entry KWin matches the alarm window against
 │   └── krunner-remindme.notifyrc
-├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeautostarttest, deadlineschedulertest, remindmealarmpresentertest, remindmeintegrationtest
+├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeadaptertest, remindmeautostarttest, deadlineschedulertest, remindmealarmpresentertest, remindmetrayicontest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
 ├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh / restart-krunner.sh / preset-args.sh
 │   └── kns/                             # install launcher for the store package (prebuilt payload)

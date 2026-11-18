@@ -7,6 +7,7 @@
 #include <QLabel>
 #include <QList>
 #include <QPushButton>
+#include <QScreen>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QTest>
@@ -38,6 +39,16 @@ class RemindmeAlarmPresenterTest : public QObject
     static TimerInfo timer(int id, const QString &message)
     {
         return TimerInfo{.id = id, .deadline = 0, .message = message};
+    }
+
+    static void clickButton(QWidget *window, const QString &text)
+    {
+        for (QPushButton *button : window->findChildren<QPushButton *>()) {
+            if (button->text() == text) {
+                button->click();
+                return;
+            }
+        }
     }
 
 private Q_SLOTS:
@@ -182,6 +193,94 @@ private Q_SLOTS:
         }
         QVERIFY(sawEmptyText);
         QVERIFY(presenter.isPresenting());
+    }
+
+    void testLongMessageStaysOnScreen()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        presenter.presentExpiry(timer(1, QStringLiteral("word ").repeated(2000)));
+
+        // The text column scrolls once it would exceed a third of the screen, so a long message
+        // can never make the fixed-size window taller than the display.
+        const QList<RemindmeAlarmDialog *> dialogs = visibleDialogs<RemindmeAlarmDialog>();
+        QCOMPARE(dialogs.size(), 1);
+        QVERIFY(dialogs.constFirst()->height() <= QGuiApplication::primaryScreen()->availableGeometry().height());
+    }
+
+    void testLongUnbrokenMessageIsCapped()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        // A single token cannot wrap: the fixed width must still cap it (the tooltip carries the
+        // full text).
+        presenter.presentExpiry(timer(1, QString(2000, QLatin1Char('x'))));
+
+        const QList<RemindmeAlarmDialog *> dialogs = visibleDialogs<RemindmeAlarmDialog>();
+        QCOMPARE(dialogs.size(), 1);
+        constexpr int maxAlarmWidth = 640;
+        QVERIFY(dialogs.constFirst()->width() <= maxAlarmWidth);
+        QVERIFY(dialogs.constFirst()->height() <= QGuiApplication::primaryScreen()->availableGeometry().height());
+    }
+
+    void testDismissButtonAcknowledgesTheAlarm()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        const auto created = engine.create(60, QStringLiteral("tea"));
+        QVERIFY(created.has_value());
+        presenter.presentExpiry(*created);
+
+        clickButton(visibleDialogs<RemindmeAlarmDialog>().constFirst(), QStringLiteral("Dismiss"));
+
+        // Dismiss is an acknowledgement: the entry leaves the engine, so it is not replayed.
+        QVERIFY(!engine.contains(created->id));
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(!presenter.isPresenting());
+    }
+
+    void testClosingTheAlarmAcknowledgesIt()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        const auto created = engine.create(60, QStringLiteral("tea"));
+        QVERIFY(created.has_value());
+        presenter.presentExpiry(*created);
+
+        // X or Esc closes the window; the alarm must not stay pending behind it.
+        visibleDialogs<RemindmeAlarmDialog>().constFirst()->reject();
+
+        QVERIFY(!engine.contains(created->id));
+    }
+
+    void testSnoozeKeepsTheTimer()
+    {
+        QTemporaryDir tempDir;
+        QVERIFY(tempDir.isValid());
+        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
+        AlarmPresenter presenter(engine);
+
+        const auto created = engine.create(60, QStringLiteral("tea"));
+        QVERIFY(created.has_value());
+        presenter.presentExpiry(*created);
+
+        clickButton(visibleDialogs<RemindmeAlarmDialog>().constFirst(), QStringLiteral("Snooze"));
+
+        const QList<TimerInfo> timers = engine.list();
+        QCOMPARE(timers.size(), 1);
+        QVERIFY(timers.constFirst().deadline > created->deadline);
     }
 
     // A failed assertion would otherwise leave a window behind for the next test to find.
