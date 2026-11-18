@@ -78,6 +78,8 @@ Trigger words: `remindme` or `rme`.
 
 A ringing alarm that has not been snoozed or dismissed yet is listed by `rme list` and `rme cancel`, so it can be acknowledged from KRunner without finding its window.
 
+Snooze re-arms the alarm after the minutes shown in its spin box (default 1, up to 1440).
+
 Selecting a listed timer opens one *Reminders* window with every active timer, each row with its due time and a *Cancel timer* button.
 
 While any timer waits, a tray icon appears too: clicking it opens the same *Reminders* window, and its tooltip shows when the next reminder is due.
@@ -100,7 +102,7 @@ While any timer waits, a tray icon appears too: clicking it opens the same *Remi
 
 ### Development
 
-Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6, Extra CMake Modules, `gettext` and `just`. Tests also need Qt `Test`.
+Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6.9+, Extra CMake Modules 6.9+, `gettext` and `just`. Tests also need Qt `Test`. `just package` needs podman or docker; `just release` needs `cog` and `gh`.
 
 ```sh
 just --list               # list available recipes

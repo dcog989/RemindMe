@@ -3,10 +3,10 @@
 ## Project Specifics
 
 - Name: RemindMe
-- Description: A third-party (user) KRunner plugin for KDE Plasma 6. Adds a timer function: type a trigger word followed by a duration (and optional message) to start a countdown; when time is up, a dedicated alarm window pops up with Snooze (+1 min) and Dismiss. Active timers can be listed and cancelled from KRunner, and they survive KRunner restarts.
+- Description: A third-party (user) KRunner plugin for KDE Plasma 6. Adds a timer function: type a trigger word followed by a duration (and optional message) to start a countdown; when time is up, a dedicated alarm window pops up with Snooze (default +1 min) and Dismiss. Active timers can be listed and cancelled from KRunner, and they survive KRunner restarts.
 - Goal: a **standalone, third-party user plugin** distributed through the [KDE Store](https://store.kde.org/) and installable via KRunner's **Get New Plugins** flow; not part of KDE Plasma.
 - Status: migration from the in-tree plasma-workspace plugin is complete; the extraction source has been removed. One `krunner-remindme` process is the engine, the KRunner DBus2 runner and the alarm window.
-- Tech: C++20, Qt 6.9+, KDE Frameworks 6, CMake 3.29+, Extra CMake Modules (ECM)
+- Tech: C++20, Qt 6.9+, KDE Frameworks 6.9+, CMake 3.29+, Extra CMake Modules (ECM)
 - License: **GPL-3.0-or-later**, declared in a single `LICENSE` file at the repo root.
 
 ### File Access
@@ -46,7 +46,7 @@ remindme/
 │   └── krunner-remindme.notifyrc
 ├── autotests/                           # ctest: remindmetimetest, remindmeenginetest, remindmeadaptertest, remindmeautostarttest, deadlineschedulertest, remindmealarmpresentertest, remindmetrayicontest, remindmeintegrationtest
 ├── po/                                  # translation extraction (Messages.sh)
-├── packaging/                           # build.sh / install.sh / uninstall.sh / package.sh / release.sh / restart-krunner.sh / preset-args.sh
+├── packaging/                           # install.sh / uninstall.sh / package.sh / release.sh / restart-krunner.sh / preset-args.sh
 │   └── kns/                             # install launcher for the store package (prebuilt payload)
 └── README.md
 ```
