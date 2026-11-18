@@ -35,6 +35,11 @@ class RemindmeIntegrationTest : public KRunner::AbstractRunnerTest
         return QStringLiteral(REMINDME_DBUS_SERVICE_NAME);
     }
 
+    static bool serviceRegistered()
+    {
+        return QDBusConnection::sessionBus().interface()->isServiceRegistered(serviceName()).value();
+    }
+
     static QRegularExpression timerIdRegex()
     {
         return QRegularExpression(QStringLiteral("^#(\\d+) "));
@@ -220,6 +225,10 @@ private Q_SLOTS:
             KDesktopFile file(entryPath);
             return file.desktopGroup().readEntry("Hidden", fallback);
         };
+
+        // cleanup() leaves a hidden entry behind after any earlier test that created a timer, so
+        // this test must not depend on running first.
+        QFile::remove(entryPath);
 
         // An idle helper must not create an unused entry.
         QVERIFY(!QFile::exists(entryPath));
@@ -459,6 +468,23 @@ private Q_SLOTS:
             return false;
         };
         QTRY_VERIFY_WITH_TIMEOUT(!sawRingingRow(), 5000);
+    }
+
+    void testIdleExitAndReactivation()
+    {
+        // The helper exits once its last timer is gone (that quit path has no other test); a later
+        // query must activate a fresh process instead of reaching a torn-down object tree.
+        const int id = createTimer(QStringLiteral("10:00"), QStringLiteral("idle exit"));
+        QVERIFY(id >= 1);
+
+        const QList<QueryMatch> cancel = query(QStringLiteral("rme cancel %1").arg(id));
+        QCOMPARE(cancel.size(), 1);
+        manager->run(cancel.constFirst());
+
+        QTRY_VERIFY_WITH_TIMEOUT(!serviceRegistered(), 5000);
+
+        QVERIFY(!query(QStringLiteral("rme")).isEmpty());
+        QVERIFY(serviceRegistered());
     }
 
     void testTriggerWordsCoverSyntaxes()
