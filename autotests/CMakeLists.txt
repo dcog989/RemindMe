@@ -51,3 +51,13 @@ target_include_directories(remindmealarmpresentertest PRIVATE ${REMINDME_ENGINE_
 # The presenter takes the windowed path for any platform but "offscreen"; "minimal" creates and
 # destroys widgets without a display. Appended so ECM's QT_PLUGIN_PATH stays set.
 set_property(TEST remindmealarmpresentertest APPEND PROPERTY ENVIRONMENT "QT_QPA_PLATFORM=minimal")
+
+# The tray icon is view-only: it must follow the engine's timer count and never hold a set of its
+# own. "minimal" keeps QSystemTrayIcon's visible flag without a tray host.
+ecm_add_test(remindmetrayicontest.cpp TEST_NAME remindmetrayicontest LINK_LIBRARIES Qt6::Test Qt6::Widgets KF6::I18n)
+target_sources(remindmetrayicontest PRIVATE
+    ${REMINDME_CORE_SOURCES}
+    ${REMINDME_ENGINE_DIR}/remindmetrayicon.cpp
+)
+target_include_directories(remindmetrayicontest PRIVATE ${REMINDME_ENGINE_DIR})
+set_property(TEST remindmetrayicontest APPEND PROPERTY ENVIRONMENT "QT_QPA_PLATFORM=minimal")

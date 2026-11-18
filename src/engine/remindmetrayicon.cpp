@@ -14,6 +14,7 @@
 RemindmeTrayIcon::RemindmeTrayIcon(RemindmeEngine &engine, QObject *parent)
     : QObject(parent)
     , m_engine(engine)
+    , m_icon(this)
 {
     // Headless contexts (CI, no desktop) have no tray to add to; the engine still works.
     if (QGuiApplication::platformName() == QLatin1String("offscreen")) {
