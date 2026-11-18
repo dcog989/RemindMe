@@ -40,7 +40,7 @@ qint64 RemindmeEngine::nowMs() const
 
 std::optional<Remindme::TimerInfo> RemindmeEngine::create(qint32 durationSeconds, const QString &message)
 {
-    if (durationSeconds <= 0 || durationSeconds > Remindme::maxDurationSeconds) {
+    if (durationSeconds <= 0 || durationSeconds > Remindme::maxDurationSeconds || isFull()) {
         return std::nullopt;
     }
     Remindme::TimerInfo timer;
@@ -65,7 +65,12 @@ bool RemindmeEngine::isEmpty() const
 
 bool RemindmeEngine::contains(qint32 id) const
 {
-    return m_timers.contains(id);
+    return m_timers.contains(id) || m_firedAlarms.contains(id);
+}
+
+bool RemindmeEngine::isFull() const
+{
+    return m_timers.size() + m_firedAlarms.size() >= Remindme::maxTimers;
 }
 
 bool RemindmeEngine::cancel(qint32 id)
@@ -75,6 +80,8 @@ bool RemindmeEngine::cancel(qint32 id)
     const bool removedFired = m_firedAlarms.remove(id) > 0;
     if (removedActive || removedFired) {
         commitTimers();
+        // After persisting: a listener that closes a window may re-check idleness.
+        Q_EMIT timerRemoved(id);
         return true;
     }
     return false;
@@ -93,6 +100,9 @@ bool RemindmeEngine::cancelByMessage(const QString &message)
         m_firedAlarms.remove(timer.id);
     }
     commitTimers();
+    for (const Remindme::TimerInfo &timer : matches) {
+        Q_EMIT timerRemoved(timer.id);
+    }
     return true;
 }
 
@@ -128,6 +138,9 @@ void RemindmeEngine::loadFromDisk()
     }
     if (!file.open(QIODevice::ReadOnly)) {
         qWarning() << "Could not read timer state file" << m_stateFilePath << file.errorString();
+        // An unreadable file may still hold timers the user wants; move it aside like a corrupt
+        // one, so the next save cannot replace it with a fresh, empty file.
+        preserveStateFile();
         return;
     }
 
@@ -138,17 +151,7 @@ void RemindmeEngine::loadFromDisk()
     if (error.error != QJsonParseError::NoError || !doc.isArray()) {
         const QString reason = error.error != QJsonParseError::NoError ? error.errorString() : QStringLiteral("root is not a JSON array");
         qWarning() << "Discarding corrupt timer state file" << m_stateFilePath << reason;
-        // Preserve every unreadable file so a later save cannot overwrite it and a second
-        // corruption cannot destroy the first backup. Timestamped, with a numeric suffix to
-        // resolve collisions within the same second; these accumulate and are never pruned.
-        const QString base = m_stateFilePath + QStringLiteral(".") + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
-        QString backupPath = base + QStringLiteral(".bak");
-        for (int suffix = 1; QFile::exists(backupPath); ++suffix) {
-            backupPath = base + QStringLiteral("-") + QString::number(suffix) + QStringLiteral(".bak");
-        }
-        if (!QFile::rename(m_stateFilePath, backupPath)) {
-            qWarning() << "Could not back up corrupt timer state file to" << backupPath;
-        }
+        preserveStateFile();
         return;
     }
 
@@ -169,6 +172,21 @@ void RemindmeEngine::loadFromDisk()
             }
             m_nextId = std::max(m_nextId, timer.id + 1);
         }
+    }
+}
+
+void RemindmeEngine::preserveStateFile()
+{
+    // Preserve every unreadable file so a later save cannot overwrite it and a second failure
+    // cannot destroy the first backup. Timestamped, with a numeric suffix to resolve collisions
+    // within the same second; these accumulate and are never pruned.
+    const QString base = m_stateFilePath + QStringLiteral(".") + QDateTime::currentDateTime().toString(QStringLiteral("yyyyMMdd-HHmmss"));
+    QString backupPath = base + QStringLiteral(".bak");
+    for (int suffix = 1; QFile::exists(backupPath); ++suffix) {
+        backupPath = base + QStringLiteral("-") + QString::number(suffix) + QStringLiteral(".bak");
+    }
+    if (!QFile::rename(m_stateFilePath, backupPath)) {
+        qWarning() << "Could not back up timer state file to" << backupPath;
     }
 }
 

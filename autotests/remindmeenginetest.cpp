@@ -138,6 +138,17 @@ private Q_SLOTS:
         QCOMPARE(engine->list().size(), 1);
     }
 
+    void testCreateStopsAtTheTimerCap()
+    {
+        // A hard cap bounds the per-create file rewrite and the state file size.
+        for (int i = 0; i < Remindme::maxTimers; ++i) {
+            QVERIFY(engine->create(60, QString()).has_value());
+        }
+        QVERIFY(engine->isFull());
+        QVERIFY(!engine->create(60, QString()).has_value());
+        QCOMPARE(engine->list().size(), Remindme::maxTimers);
+    }
+
     void testCancelById()
     {
         engine->create(60, QStringLiteral("one"));
@@ -149,6 +160,23 @@ private Q_SLOTS:
 
         QVERIFY(!engine->cancel(1)); // already gone
         QVERIFY(!engine->cancel(99)); // never existed
+    }
+
+    void testCancelSignalsRemovedIdForActiveAndFired()
+    {
+        QSignalSpy spy(engine.data(), &RemindmeEngine::timerRemoved);
+        engine->create(1, QStringLiteral("tea"));
+
+        // A fired alarm stays addressable, so "rme cancel <id>" can acknowledge its window.
+        fakeNow += 2 * 1000;
+        engine->checkExpiredTimers();
+        QVERIFY(engine->contains(1));
+
+        QVERIFY(engine->cancel(1));
+        QCOMPARE(spy.count(), 1);
+        QCOMPARE(spy.constFirst().constFirst().toInt(), 1);
+        QVERIFY(!engine->contains(1));
+        QVERIFY(!engine->hasPendingAlarms());
     }
 
     void testCancelByMessage()
@@ -243,6 +271,30 @@ private Q_SLOTS:
         QCOMPARE(backups().size(), 2);
 
         QCOMPARE(engine->create(60, QString()).value().id, 1); // next mutation writes a fresh file
+        QVERIFY(QFile::exists(stateFilePath()));
+    }
+
+    void testUnreadableStateFileIsPreserved()
+    {
+        QFile file(stateFilePath());
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write(R"([{"id":1,"deadline":1000,"message":"keep"}])");
+        file.close();
+        QVERIFY(file.setPermissions(QFileDevice::WriteOwner));
+        QFile probe(stateFilePath());
+        if (probe.open(QIODevice::ReadOnly)) {
+            probe.close();
+            QSKIP("permission bits are not enforced here; cannot simulate a read failure");
+        }
+
+        resetEngine();
+        QCOMPARE(engine->list().size(), 0);
+
+        // An unreadable file is moved aside, not replaced by the next save.
+        QVERIFY(!QFile::exists(stateFilePath()));
+        const QStringList backups = QDir(tempDir->path()).entryList(QStringList{QStringLiteral("timers.json*.bak")}, QDir::Files);
+        QCOMPARE(backups.size(), 1);
+        QCOMPARE(engine->create(60, QString()).value().id, 1);
         QVERIFY(QFile::exists(stateFilePath()));
     }
 

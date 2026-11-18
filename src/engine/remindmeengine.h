@@ -14,6 +14,10 @@ namespace Remindme
 // How long a snooze extends a timer by; the alarm dialog derives its "Snooze +N minute(s)" label
 // from this value.
 constexpr qint64 snoozeDurationMs = 60 * 1000;
+
+// Hard cap on stored timers (active plus unacknowledged alarms), so a script driving the runner
+// cannot grow the state file without bound.
+constexpr int maxTimers = 100;
 }
 
 class DeadlineScheduler;
@@ -51,10 +55,13 @@ public:
     // out of range (no timer is created).
     std::optional<Remindme::TimerInfo> create(qint32 durationSeconds, const QString &message);
     QList<Remindme::TimerInfo> list() const;
-    // Whether any active timer exists / whether the active timer with id exists. Avoids the value
-    // copy list() makes when the caller only needs a membership test.
+    // Whether any active timer exists / whether a timer with id exists in either set. Avoids the
+    // value copy list() makes when the caller only needs a membership test; a fired alarm counts,
+    // so "rme cancel <id>" can acknowledge the window that is still on screen.
     bool isEmpty() const;
     bool contains(qint32 id) const;
+    // Whether another timer may be stored (see Remindme::maxTimers).
+    bool isFull() const;
     bool cancel(qint32 id);
     bool cancelByMessage(const QString &message);
     // Active and fired timers whose message contains term (case-insensitive substring). Shared by
@@ -73,9 +80,14 @@ Q_SIGNALS:
     // Emitted whenever the set of timers changes (create, cancel, expiry, snooze), with the new
     // count of active plus fired alarms; lets the host process know when the engine is out of work.
     void timerCountChanged(int timerCount);
+    // Emitted after an explicit cancellation removed the entry (active or fired), so a host
+    // showing that timer can drop its window. Not emitted on expiry, which presents instead.
+    void timerRemoved(qint32 id);
 
 private:
     void loadFromDisk();
+    // Renames the state file aside so neither a later save nor a second corruption can destroy it.
+    void preserveStateFile();
     void saveToDisk() const;
     void scheduleExpiryCheck();
     // Persists m_timers and m_firedAlarms and re-arms the scheduler. Call after any mutation.
