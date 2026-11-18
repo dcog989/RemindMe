@@ -90,8 +90,10 @@ tidy preset="user" *args:
     just build {{preset}}
     # Qt passes -mno-direct-extern-access to GCC; clang-tidy's clang rejects it, so strip it.
     # Skip the *_autogen TUs: their generated moc code trips checks that do not apply to our source.
+    # Warnings are errors so the CI step is not a no-op when a diagnostic lands.
     run-clang-tidy -p build/{{preset}} \
         -removed-arg=-mno-direct-extern-access \
+        -warnings-as-errors='*' \
         '^(?!.*(_autogen|mocs_compilation)).*\.(cpp|cc|cxx)$' \
         {{args}}
 

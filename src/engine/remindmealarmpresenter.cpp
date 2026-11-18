@@ -87,7 +87,7 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer)
     // so the presenter never reports "nothing on screen" while this timer still has a window.
     ++m_openDialogCount;
     connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer](int minutes) {
-        m_engine.snooze(timer, qint64(minutes) * 60 * 1000);
+        m_engine.snooze(timer, static_cast<qint64>(minutes) * 60 * 1000);
     });
     // Dismiss clears the engine entry, which is how a fired alarm is acknowledged; the dialog also
     // emits this when an alarm window is closed (X or Esc).

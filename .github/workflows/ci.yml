@@ -33,7 +33,7 @@ jobs:
           # transaction ("Operation too slow"). Partial downloads resume, so retry it.
           for attempt in 1 2 3; do
             pacman -Syu --noconfirm --needed \
-              base-devel cmake ninja git just \
+              base-devel cmake ninja git just clang \
               qt6-base krunner kcoreaddons ki18n knotifications kconfig \
               extra-cmake-modules && exit 0
             printf 'pacman attempt %s failed; retrying\n' "$attempt" >&2
@@ -47,6 +47,9 @@ jobs:
         run: just ci
       - name: Configure, build and test (AddressSanitizer)
         run: just ci asan
+      # `clang` also ships clang-tidy and run-clang-tidy; reuse the user-preset build tree.
+      - name: Static analysis
+        run: just tidy
 
   lint:
     name: Lint

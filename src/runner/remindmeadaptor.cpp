@@ -252,11 +252,9 @@ void RemindmeAdaptor::addUsageMatches(RemoteMatches &matches, const QString &tri
     };
 
     // The hint echoes the canonical spelling of whichever trigger alias the user typed.
-    const QString prefix = trigger;
-
     int index = 0;
     for (const Usage &usage : usages) {
-        RemoteMatch match = makeMatch(QStringLiteral("usage%1").arg(index++), prefix + QLatin1Char(' ') + usage.command, relevanceUsage);
+        RemoteMatch match = makeMatch(QStringLiteral("usage%1").arg(index++), trigger + QLatin1Char(' ') + usage.command, relevanceUsage);
         match.properties.insert(QStringLiteral("subtext"), usage.description);
         matches.append(match);
     }
