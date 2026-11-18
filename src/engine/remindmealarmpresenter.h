@@ -37,8 +37,7 @@ Q_SIGNALS:
 private:
     void presentDialog(const Remindme::TimerInfo &timer);
     void presentSound(const Remindme::TimerInfo &timer);
-    void onDialogClosed();
-    void onSoundClosed();
+    void emitFinishedIfIdle();
 
     RemindmeEngine &m_engine;
     // Open alarm windows keyed by timer id, so a second presentation for the same timer replaces

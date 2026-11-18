@@ -49,7 +49,10 @@ void AlarmPresenter::presentReminders(const QList<Remindme::TimerInfo> &timers)
     connect(dialog, &ReminderListDialog::cancelRequested, this, [this](const Remindme::TimerInfo &timer) {
         m_engine.cancel(timer.id);
     });
-    connect(dialog, &QObject::destroyed, this, &AlarmPresenter::onDialogClosed);
+    connect(dialog, &QObject::destroyed, this, [this]() {
+        --m_openDialogCount;
+        emitFinishedIfIdle();
+    });
     dialog->show();
     // This process runs in the background, so the window could otherwise map behind the active
     // window (especially on Wayland).
@@ -100,7 +103,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer)
         if (m_dialogs.value(id).isNull()) {
             m_dialogs.remove(id);
         }
-        onDialogClosed();
+        --m_openDialogCount;
+        emitFinishedIfIdle();
     });
     dialog->show();
     // This process runs in the background, so the dialog could otherwise map behind the active
@@ -127,22 +131,17 @@ void AlarmPresenter::presentSound(const Remindme::TimerInfo &timer)
     // the fired alarm; otherwise the entry stays pending and replays on every activation.
     connect(sound, &KNotification::closed, this, [this, id = timer.id]() {
         m_engine.cancel(id);
-        onSoundClosed();
+        --m_pendingSoundCount;
+        emitFinishedIfIdle();
     });
+    // The presenter outlives every notification, so a closed one would otherwise stay its child
+    // (and keep its message) for the rest of the process.
+    connect(sound, &KNotification::closed, sound, &QObject::deleteLater);
     sound->sendEvent();
 }
 
-void AlarmPresenter::onDialogClosed()
+void AlarmPresenter::emitFinishedIfIdle()
 {
-    --m_openDialogCount;
-    if (!isPresenting()) {
-        Q_EMIT presentationsFinished();
-    }
-}
-
-void AlarmPresenter::onSoundClosed()
-{
-    --m_pendingSoundCount;
     if (!isPresenting()) {
         Q_EMIT presentationsFinished();
     }
