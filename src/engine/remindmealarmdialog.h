@@ -15,6 +15,12 @@ constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
 // Upper bound of the snooze spin box, in minutes (24 h).
 constexpr int maxSnoozeMinutes = 60 * 24;
 
+// KWin refuses to resize a decorated Wayland window below 150x150 client pixels
+// (XdgToplevelWindow::minSize()). This dialog's own height hint is smaller, so a vertical
+// resize would stop above the height it opened at and never come back down. Starting at the
+// same floor makes the opening height the height the user can always drag back to.
+constexpr int minWindowHeight = 150;
+
 // Which alarm a dialog or presenter is handling: an expiry alarm (looping sound, "Dismiss") or a
 // manual reminder for a still-active timer (no sound, "Cancel timer").
 enum class AlarmKind : std::uint8_t {

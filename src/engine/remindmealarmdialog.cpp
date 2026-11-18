@@ -45,6 +45,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     setAttribute(Qt::WA_DeleteOnClose);
 
     const bool isExpiry = kind == Remindme::AlarmKind::Expiry;
+    setMinimumHeight(Remindme::minWindowHeight);
     auto *layout = new QVBoxLayout(this);
     if (!timer.message.isEmpty()) {
         auto *messageLabel = new QLabel(timer.message, this);
