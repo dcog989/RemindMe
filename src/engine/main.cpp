@@ -69,6 +69,10 @@ int main(int argc, char **argv)
     // protocol-level guard; this one keeps the state side effects single too.
     const QString dataDir = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
     QLockFile instanceLock(dataDir + QStringLiteral("/instance.lock"));
+    // The helper holds this lock for as long as a timer runs, possibly hours. QLockFile's default
+    // 30 s stale time would let a second starter delete a live lock, so disable only the age-based
+    // check; a dead PID is still detected and its lock removed.
+    instanceLock.setStaleLockTime(0);
     if (!dataDir.isEmpty()) {
         if (!QDir().mkpath(dataDir)) {
             qWarning() << "Could not create the state directory" << dataDir;
@@ -107,10 +111,13 @@ int main(int argc, char **argv)
     RemindmeTrayIcon tray(engine);
 
     // Exit when there is nothing left to do; D-Bus activation restarts the helper on demand.
-    // Drop the service name first so a call racing the exit is routed to a freshly activated
-    // helper instead of this process's torn-down object tree.
+    // Release the lock and drop the service name first so a call racing the exit is routed to a
+    // freshly activated helper instead of this process's torn-down object tree.
     const auto tryQuit = [&]() {
         if (engine.isEmpty() && !presenter.isPresenting()) {
+            // The fresh process must be able to take the lock while this one finishes tearing
+            // down; otherwise its tryLock() fails and the racing call gets no runner.
+            instanceLock.unlock();
             QDBusConnection::sessionBus().unregisterService(s_serviceName);
             app.quit();
         }
