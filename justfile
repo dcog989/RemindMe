@@ -5,10 +5,6 @@
 # Verify the repo: lint, format check, then configure, build and test.
 default: check
 
-# List available recipes
-list:
-    @just --list
-
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
@@ -157,10 +153,11 @@ package:
     fi
     exec bash packaging/package.sh
 
-# Rebuild, reinstall and relaunch KRunner with the local runner
+# Configure, build, reinstall and relaunch KRunner with the local runner
 reload preset="user":
     #!/usr/bin/env bash
     set -euo pipefail
+    cmake --preset {{preset}}
     cmake --build --preset {{preset}}
     cmake --install build/{{preset}}
     # Drop the helper from any install prefix (kf6 = cmake, remindme = KDE Store launcher) so the

@@ -292,13 +292,13 @@ bool RemindmeEngine::snooze(const Remindme::TimerInfo &timer, qint64 durationMs)
     return false;
 }
 
-void RemindmeEngine::show(qint32 id)
+void RemindmeEngine::showReminders()
 {
-    const auto it = m_timers.constFind(id);
-    if (it == m_timers.cend()) {
-        return;
-    }
-    Q_EMIT showReminderRequested(it.value());
+    // Soonest deadline first, so the overview lists what is about to expire at the top. An empty
+    // set is signalled too: the overview then says that no timer is active.
+    QList<Remindme::TimerInfo> timers = m_timers.values();
+    std::ranges::sort(timers, {}, &Remindme::TimerInfo::deadline);
+    Q_EMIT remindersRequested(timers);
 }
 
 bool RemindmeEngine::hasPendingAlarms() const

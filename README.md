@@ -1,6 +1,6 @@
 # RemindMe
 
-A timer plugin for KDE Plasma 6. Allows you to create, list, and cancel timers from KRunner with optional message and snooze.
+A timer plugin for KDE Plasma 6 to create, list, and cancel timers from KRunner with optional message and snooze.
 
 ![screenshot 1](assets/screen-1.webp)
 ![screenshot 2](assets/screen-2.webp)
@@ -28,7 +28,8 @@ krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-*
 systemctl --user restart plasma-krunner.service
 ```
 
-Optionally, go to *System Settings → Search → Plasma Search* and make RemindMe a favorite and move it above others as required.
+> [!NOTE]
+> Optionally, make RemindMe a favorite and move it above others via *System Settings → Search → Plasma Search*.
 
 ## Usage
 
@@ -42,6 +43,8 @@ Trigger words: `remindme` or `rme`.
 | Cancel by message     | `rme cancel meeting`  |
 | List timers to cancel | `rme cancel`          |
 | Usage / help          | `rme`                 |
+
+Selecting a listed timer opens one *Reminders* window with every active timer, each row with its due time, Snooze and Cancel timer.
 
 | Input          | Meaning                             |
 | -------------- | ----------------------------------- |
@@ -61,55 +64,36 @@ Trigger words: `remindme` or `rme`.
 
 ### Development
 
-- `just check` — lint, format check, then configure, build and test (what a bare `just` runs)
-- `just ci` - configure, build and test
-- `just list` - list recipes
-- `just test` - test only
-- `just format` — clang-format + shfmt in place
-- `just format-check` — fails if C++ isn't formatted
-- `just lint` — typos, shellcheck, yamllint, editorconfig-checker, clang-format (skips missing tools)
-- `just tidy` — clang-tidy over the configured preset (configures and builds first)
-- `just pot` — extract translatable strings into `po/krunner_remindme.pot`
-- `just reload` — rebuild, reinstall and relaunch KRunner
-- `just package` — build the KDE Store payload. Needs podman or docker (`IMAGE`, `ARCHES` and `RUNTIME` override the defaults): the archive ships a binary built in the container, so store users install without a toolchain.
-- `just clean`
+Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6, Extra CMake Modules, `gettext` and `just`. Tests also need Qt `Test`.
+
+```sh
+just --list               # list available recipes
+
+just                      # Verify the repo: lint, format check, then configure, build and test.
+just build                # Build a configured preset
+just check                # Verify the repo: lint, format check and the full ci workflow
+just ci                   # Configure, build and test in one command
+just clean                # Remove all build trees
+just doctor               # Report which optional tools are missing
+just format               # Format C++ sources and shell scripts in place
+just format-check         # Fail if C++ or shell sources are not formatted
+just install              # Install a built preset
+just lint                 # Run every available linter; missing tools and not-yet-added configs are skipped
+just package              # Build the KDE Store payload (prebuilt binary per architecture, in a container)
+just pot                  # Extract translatable strings into po/krunner_remindme.pot
+just release              # Bump the version from conventional commits and tag it.
+just reload               # Configure, build, reinstall and relaunch KRunner with the local runner
+just test                 # Run the test suite
+just tidy                 # Run clang-tidy over project sources
+```
 
 ### Install from source
 
-Build dependencies: a C++20 compiler, CMake 3.29+, Qt 6.9+ (`Core`, `DBus`, `Widgets`), KDE Frameworks 6 (`CoreAddons`, `I18n`, `Notifications`, `Config`), `gettext` (compiles the catalogues under `po/`) and [Extra CMake Modules](https://invent.kde.org/frameworks/extra-cmake-modules). Building the tests additionally needs Qt `Test` and the KF6 `Runner` framework (for `AbstractRunnerTest`).
-
-The build is driven by [CMake presets](CMakePresets.json), with a thin [`justfile`](justfile) for convenience. Requires [`just`](https://github.com/casey/just):
-
 ```sh
-just configure          # cmake --preset user
-just build              # cmake --build --preset user
-just install            # install into ~/.local
-just reload             # kills the running KRunner/helper, rebuilds the user preset, installs it, and relaunches KRunner.
+just reload             # configure, build, install into ~/.local, restart KRunner
 ```
 
-Without `just`:
-
-```sh
-cmake --preset user
-cmake --build --preset user
-cmake --install build/user
-```
-
-Presets: `user` (`~/.local`, Debug), `release`, `system` (`/usr`), `asan` (ASan + UBSan). Configure, build and test in one go with `just ci` (or `cmake --workflow --preset <preset>`); every preset has both a workflow and a test preset.
-
-Because `remindme` is a D-Bus runner, a `~/.local` install needs no `QT_PLUGIN_PATH` and no sudo: KRunner scans `~/.local/share/krunner/dbusplugins`, D-Bus scans `~/.local/share/dbus-1/services`, and the service `Exec=` is an absolute path. Restart KRunner afterwards so it reloads the runner list:
-
-```sh
-kquitapp6 krunner && krunner &
-```
-
-The packaging helpers wrap the same steps and restart KRunner:
-
-```sh
-bash packaging/build.sh
-bash packaging/install.sh            # or: packaging/install.sh --system
-bash packaging/uninstall.sh          # driven by the CMake install manifest
-```
+Uninstall: `bash packaging/uninstall.sh`.
 
 ---
 

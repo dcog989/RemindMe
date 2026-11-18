@@ -51,6 +51,7 @@ target_sources(remindmealarmpresentertest PRIVATE
     ${REMINDME_ENGINE_DIR}/remindmealarmdialog.cpp
     ${REMINDME_ENGINE_DIR}/remindmealarmnotification.cpp
     ${REMINDME_ENGINE_DIR}/remindmealarmsound.cpp
+    ${REMINDME_ENGINE_DIR}/remindmereminderlistdialog.cpp
     ${REMINDME_ENGINE_DIR}/remindmeengine.cpp
     ${REMINDME_ENGINE_DIR}/remindmetime.cpp
     ${REMINDME_SCHEDULER_SOURCES}

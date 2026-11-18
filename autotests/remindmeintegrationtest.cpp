@@ -258,6 +258,19 @@ private Q_SLOTS:
         QVERIFY(timers.constFirst().text().contains(QLatin1String("coffee")));
     }
 
+    void testListEmpty()
+    {
+        // "rme list" with nothing active offers a row that opens the overview to say so
+        const QList<QueryMatch> matches = query(QStringLiteral("rme list"));
+        QCOMPARE(matches.size(), 1);
+        QCOMPARE(matches.constFirst().text(), QStringLiteral("No active timers."));
+
+        // Activating it neither creates nor cancels anything
+        manager->run(matches.constFirst());
+        QTest::qWait(100);
+        QCOMPARE(activeTimerCount(), 0);
+    }
+
     void testListMatch()
     {
         QVERIFY(createTimer(QStringLiteral("10:00"), QStringLiteral("hello")) >= 1);
@@ -380,7 +393,7 @@ private Q_SLOTS:
 
         const QList<QueryMatch> timers = listTimers();
         QCOMPARE(timers.size(), 1);
-        manager->run(timers.constFirst()); // default action shows the reminder, it does not cancel
+        manager->run(timers.constFirst()); // default action opens the overview; it does not cancel
         QTest::qWait(100);
         QCOMPARE(activeTimerCount(), 1);
     }

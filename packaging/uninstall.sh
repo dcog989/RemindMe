@@ -17,7 +17,7 @@ source "$script_dir/preset-args.sh" "$@"
 
 manifest="build/$preset/install_manifest.txt"
 if [ ! -f "$manifest" ]; then
-    echo "no install manifest at $manifest; run packaging/install.sh first" >&2
+    echo "no install manifest at $manifest; install a preset first (just reload)" >&2
     exit 1
 fi
 

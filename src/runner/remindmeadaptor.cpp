@@ -28,6 +28,9 @@ const QString s_createPrefix{QStringLiteral("create:")};
 const QString s_timerPrefix{QStringLiteral("timer")};
 const QString s_cancelMessagePrefix{QStringLiteral("cancelmsg:")};
 const QString s_cancelPrefix{QStringLiteral("cancel:")};
+// The "rme list" row shown when no timer is active: running it still opens the overview, which
+// then says there are none.
+const QString s_listPrefix{QStringLiteral("list")};
 
 // KRunner::QueryMatch::CategoryRelevance::Highest. The DBus API carries the raw int.
 constexpr int categoryRelevanceHighest = 100;
@@ -132,35 +135,46 @@ void RemindmeAdaptor::Run(const QString &matchId, const QString &actionId)
     const QString activationToken = m_activationToken;
     m_activationToken.clear();
 
+    // Whether this activation opens the reminder overview, which needs the token to take focus.
+    bool opensReminders = false;
+
     if (const std::optional<QString> rest = stripPrefix(matchId, s_createPrefix)) {
         const Remindme::Duration duration = Remindme::parseDurationAndMessage(*rest);
         if (duration.valid) {
             m_engine->create(duration.seconds, duration.message);
         }
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_timerPrefix)) {
-        // A listed timer shows its reminder by default; its "cancel" action cancels it.
-        const int id = rest->toInt();
+        // A listed timer opens the reminder overview, which shows every waiting timer; its
+        // "cancel" action cancels just that one.
         if (actionId == QLatin1String("cancel")) {
-            m_engine->cancel(id);
+            m_engine->cancel(rest->toInt());
         } else {
-            // KRunner hands us a Wayland activation token (SetActivationToken) so the alarm
-            // window can take focus. Qt's QWindow::requestActivate(), reached via the dialog's
-            // activateWindow(), consumes XDG_ACTIVATION_TOKEN from the environment, so set it
-            // before show() synchronously opens the window.
-            if (!activationToken.isEmpty()) {
-                qputenv("XDG_ACTIVATION_TOKEN", activationToken.toUtf8());
-            }
-            m_engine->show(id);
-            // The token is single-use. Clear the variable once the window has been shown (Qt reads
-            // and unsets it during that synchronous call), so a later activation cannot pick up a
-            // spent token and fail to focus.
-            qunsetenv("XDG_ACTIVATION_TOKEN");
+            opensReminders = true;
         }
+    } else if (matchId == s_listPrefix) {
+        // "rme list" with nothing active still opens the overview, so it can say there are none.
+        opensReminders = true;
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelMessagePrefix)) {
         m_engine->cancelByMessage(*rest);
     } else if (const std::optional<QString> rest = stripPrefix(matchId, s_cancelPrefix)) {
         m_engine->cancel(rest->toInt());
     }
+
+    if (!opensReminders) {
+        return;
+    }
+    // KRunner hands us a Wayland activation token (SetActivationToken) so the reminder window can
+    // take focus. Qt's QWindow::requestActivate(), reached via the dialog's activateWindow(),
+    // consumes XDG_ACTIVATION_TOKEN from the environment, so set it before show() synchronously
+    // opens the window.
+    if (!activationToken.isEmpty()) {
+        qputenv("XDG_ACTIVATION_TOKEN", activationToken.toUtf8());
+    }
+    m_engine->showReminders();
+    // The token is single-use. Clear the variable once the window has been shown (Qt reads and
+    // unsets it during that synchronous call), so a later activation cannot pick up a spent token
+    // and fail to focus.
+    qunsetenv("XDG_ACTIVATION_TOKEN");
 }
 
 void RemindmeAdaptor::Teardown()
@@ -240,7 +254,10 @@ void RemindmeAdaptor::addListMatches(RemoteMatches &matches) const
 {
     const QList<Remindme::TimerInfo> timers = m_engine->list();
     if (timers.isEmpty()) {
-        addSimpleMatch(matches, i18n("No timers"), i18n("Use rme with a duration to start one"));
+        // Activation still opens the overview window, which then reports that nothing is active.
+        RemoteMatch match = makeMatch(s_listPrefix, i18n("No active timers."), relevanceInfo);
+        match.properties.insert(QStringLiteral("subtext"), i18n("Use rme with a duration to start one"));
+        matches.append(match);
         return;
     }
 

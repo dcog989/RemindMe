@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QList>
 #include <QMap>
 #include <QObject>
 #include <QString>
@@ -60,12 +61,15 @@ public:
     // the "cancel by message" UI (to validate and describe the match) and cancelByMessage (to
     // remove exactly that set), so the offer and the action cannot drift apart.
     QList<Remindme::TimerInfo> findTimersByMessage(const QString &term) const;
-    void show(qint32 id);
+    // Emits remindersRequested() with every active timer, soonest first (empty when none is
+    // active), for the reminder overview window.
+    void showReminders();
 
 Q_SIGNALS:
     void timerExpired(const Remindme::TimerInfo &timer);
-    // Emitted when a reminder is requested for a still-active timer (e.g. from "rme list")
-    void showReminderRequested(const Remindme::TimerInfo &timer);
+    // Emitted when reminders are requested for the active timers (e.g. from "rme list"): the
+    // whole waiting set, so one window can show them together.
+    void remindersRequested(const QList<Remindme::TimerInfo> &timers);
     // Emitted whenever the set of timers changes (create, cancel, expiry, snooze), with the new
     // count of active plus fired alarms; lets the host process know when the engine is out of work.
     void timerCountChanged(int timerCount);

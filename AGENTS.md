@@ -34,6 +34,7 @@ remindme/
 │   │   ├── remindmealarmnotification.{h,cpp} # shared alarm KNotification factory
 │   │   ├── remindmealarmpresenter.{h,cpp} # dialog/sound presentation + lifetime
 │   │   ├── remindmealarmsound.{h,cpp}   # looping expiry-alarm sound + stop timer
+│   │   ├── remindmereminderlistdialog.{h,cpp} # overview window listing every waiting timer
 │   │   └── remindmeautostart.{h,cpp}    # session autostart toggling
 │   └── runner/                          # org.kde.krunner1 D-Bus runner adaptor
 │       ├── remindmeadaptor.{h,cpp}      # Match/Run/Actions/Config/Teardown

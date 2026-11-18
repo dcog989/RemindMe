@@ -2,8 +2,6 @@
 
 #include <QDialog>
 
-#include <cstdint>
-
 #include "timerinfo.h"
 
 namespace Remindme
@@ -20,31 +18,22 @@ constexpr int maxSnoozeMinutes = 60 * 24;
 // resize would stop above the height it opened at and never come back down. Starting at the
 // same floor makes the opening height the height the user can always drag back to.
 constexpr int minWindowHeight = 150;
-
-// Which alarm a dialog or presenter is handling: an expiry alarm (looping sound, "Dismiss") or a
-// manual reminder for a still-active timer (no sound, "Cancel timer").
-enum class AlarmKind : std::uint8_t {
-    Expiry,
-    Reminder,
-};
 }
 
+// The expiry alarm: title "Timer finished", the timer's message, and a looping sound until the
+// user snoozes or dismisses it.
 class RemindmeAlarmDialog : public QDialog
 {
     Q_OBJECT
 
 public:
-    // kind distinguishes the expiry alarm (title "Timer finished", looping sound) from a manually
-    // requested reminder of a still-active timer (shown without the alarm sound). nowMs is the
-    // engine's clock, so the overdue calculation uses the same time source as the rest of the
-    // engine instead of the wall clock.
-    explicit RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind, qint64 nowMs, QWidget *parent = nullptr);
+    // nowMs is the engine's clock, so the overdue calculation uses the same time source as the
+    // rest of the engine instead of the wall clock.
+    explicit RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint64 nowMs, QWidget *parent = nullptr);
 
 Q_SIGNALS:
     // minutes is the snooze length the user picked in the spin box.
     void snoozeRequested(int minutes);
-    // Emitted when "Dismiss" acknowledges an expired alarm or "Cancel timer" cancels a
-    // still-active one. Closing an expiry window (X or Esc) acknowledges it too; closing a
-    // still-active reminder is a no-op, so the timer keeps running.
+    // Emitted when "Dismiss" acknowledges the alarm, or the window is closed (X or Esc).
     void dismissRequested();
 };

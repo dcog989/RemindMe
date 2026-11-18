@@ -39,37 +39,27 @@ QString overdueText(qint64 deadlineMs, qint64 nowMs)
 }
 }
 
-RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind, qint64 nowMs, QWidget *parent)
+RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint64 nowMs, QWidget *parent)
     : QDialog(parent)
 {
     setAttribute(Qt::WA_DeleteOnClose);
 
-    const bool isExpiry = kind == Remindme::AlarmKind::Expiry;
     setMinimumHeight(Remindme::minWindowHeight);
+    setWindowTitle(Remindme::alarmTitle());
     auto *layout = new QVBoxLayout(this);
     if (!timer.message.isEmpty()) {
         auto *messageLabel = new QLabel(timer.message, this);
         messageLabel->setWordWrap(true);
         layout->addWidget(messageLabel);
     }
-    if (isExpiry) {
-        setWindowTitle(Remindme::alarmTitle());
-        // A timer that expired while the system was off (e.g. a shutdown) surfaces later than
-        // its deadline. Show when it was due and how long ago, so a late alarm is not mistaken
-        // for one that fired on time.
-        const QString overdue = overdueText(timer.deadline, nowMs);
-        if (!overdue.isEmpty()) {
-            auto *overdueLabel = new QLabel(overdue, this);
-            overdueLabel->setWordWrap(true);
-            layout->addWidget(overdueLabel);
-        }
-    } else {
-        // A reminder for a still-active timer. The message and due time used to live only in the
-        // window title; show them as body text so the dialog is actually informative.
-        setWindowTitle(i18n("Reminder"));
-        auto *dueLabel = new QLabel(i18n("Due %1.", Remindme::formatReminderTime(QDateTime::fromMSecsSinceEpoch(timer.deadline), false)), this);
-        dueLabel->setWordWrap(true);
-        layout->addWidget(dueLabel);
+    // A timer that expired while the system was off (e.g. a shutdown) surfaces later than its
+    // deadline. Show when it was due and how long ago, so a late alarm is not mistaken for one
+    // that fired on time.
+    const QString overdue = overdueText(timer.deadline, nowMs);
+    if (!overdue.isEmpty()) {
+        auto *overdueLabel = new QLabel(overdue, this);
+        overdueLabel->setWordWrap(true);
+        layout->addWidget(overdueLabel);
     }
 
     auto *buttons = new QHBoxLayout;
@@ -78,9 +68,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     snoozeSpin->setValue(Remindme::snoozeDurationMs / (60 * 1000));
     snoozeSpin->setSuffix(i18n(" min"));
     auto *snoozeButton = new QPushButton(i18n("Snooze"), this);
-    // For a still-active timer the destructive action is cancelling it, so name it accordingly
-    // rather than "Dismiss" (which, for the expired alarm, only acknowledges the alarm).
-    auto *dismissButton = new QPushButton(isExpiry ? i18n("Dismiss") : i18n("Cancel timer"), this);
+    auto *dismissButton = new QPushButton(i18n("Dismiss"), this);
     buttons->addWidget(snoozeSpin);
     buttons->addWidget(snoozeButton);
     buttons->addWidget(dismissButton);
@@ -91,19 +79,12 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, Remin
     });
     connect(snoozeButton, &QPushButton::clicked, this, &QDialog::accept);
     connect(dismissButton, &QPushButton::clicked, this, &QDialog::accept);
-    // "Cancel timer" (still-active) cancels the timer; "Dismiss" (expired) acknowledges the
-    // alarm. Both must clear engine state, otherwise a dismissed alarm would be replayed on the
-    // next start.
     connect(dismissButton, &QPushButton::clicked, this, &RemindmeAlarmDialog::dismissRequested);
-    // Closing an expired alarm (window manager or Esc) acknowledges it too; otherwise the alarm
-    // would be left pending while the process exits, and only shown again on the next activation.
-    if (isExpiry) {
-        connect(this, &QDialog::rejected, this, &RemindmeAlarmDialog::dismissRequested);
-    }
+    // Closing the alarm (window manager or Esc) acknowledges it too; otherwise the alarm would be
+    // left pending while the process exits, and only shown again on the next activation.
+    connect(this, &QDialog::rejected, this, &RemindmeAlarmDialog::dismissRequested);
 
     // The expiry alarm loops the "remindme" sound until the dialog closes; AlarmSound is parented
     // to the dialog, so dismissing or snoozing (which destroys it) stops the sound.
-    if (isExpiry) {
-        new AlarmSound(timer.message, this);
-    }
+    new AlarmSound(timer.message, this);
 }

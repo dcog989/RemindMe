@@ -1,15 +1,18 @@
 #pragma once
 
 #include <QHash>
+#include <QList>
 #include <QObject>
 #include <QPointer>
 
 #include "remindmealarmdialog.h"
 #include "remindmeengine.h"
 
-// Presents expiry alarms and manual reminders, owning the dialog/sound lifetime so the host only
-// has to ask whether anything is still on screen. Headless contexts fall back to a one-shot sound
-// notification; a manually requested reminder has no meaningful headless form and is a no-op.
+class ReminderListDialog;
+
+// Presents expiry alarms and the reminder overview, owning the dialog/sound lifetime so the host
+// only has to ask whether anything is still on screen. Headless contexts fall back to a one-shot
+// sound notification for an alarm; the reminder overview has no headless form.
 class AlarmPresenter : public QObject
 {
     Q_OBJECT
@@ -17,9 +20,11 @@ class AlarmPresenter : public QObject
 public:
     explicit AlarmPresenter(RemindmeEngine &engine, QObject *parent = nullptr);
 
-    // Presents timer as kind: an expiry alarm (looping sound) or a reminder for a still-active
-    // timer (shown without the alarm sound). Tracked until dismissed or snoozed.
-    void present(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind);
+    // Presents timer's expiry alarm: a looping-sound alarm window, or a sound notification when
+    // there is no display.
+    void presentExpiry(const Remindme::TimerInfo &timer);
+    // Presents every still-active timer in one reminder window.
+    void presentReminders(const QList<Remindme::TimerInfo> &timers);
 
     // Whether a dialog or an in-flight sound notification is still active. The host must not exit
     // while this is true, or it would tear down the process over an alarm the user is acting on.
@@ -30,7 +35,7 @@ Q_SIGNALS:
     void presentationsFinished();
 
 private:
-    void presentDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind);
+    void presentDialog(const Remindme::TimerInfo &timer);
     void presentSound(const Remindme::TimerInfo &timer);
     void onDialogClosed();
     void onSoundClosed();
@@ -40,6 +45,8 @@ private:
     // its window instead of stacking a duplicate. QPointer nulls itself when the WA_DeleteOnClose
     // dialog is destroyed.
     QHash<int, QPointer<RemindmeAlarmDialog>> m_dialogs;
+    // The reminder overview, replaced rather than stacked when reminders are requested again.
+    QPointer<ReminderListDialog> m_reminders;
     // An expired timer was already moved to the engine's fired set, so the open window alone keeps
     // the process alive until the user snoozes or dismisses it.
     int m_openDialogCount = 0;

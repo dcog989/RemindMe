@@ -6,6 +6,7 @@
 
 #include "remindmealarmdialog.h"
 #include "remindmealarmnotification.h"
+#include "remindmereminderlistdialog.h"
 
 AlarmPresenter::AlarmPresenter(RemindmeEngine &engine, QObject *parent)
     : QObject(parent)
@@ -13,18 +14,46 @@ AlarmPresenter::AlarmPresenter(RemindmeEngine &engine, QObject *parent)
 {
 }
 
-void AlarmPresenter::present(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind)
+void AlarmPresenter::presentExpiry(const Remindme::TimerInfo &timer)
 {
     // Headless contexts (e.g. CI, no desktop) cannot show a window. An expired timer was already
-    // removed by the engine, so the alarm degrades to a single sound notification; a manually
-    // requested reminder is simply a no-op.
+    // removed by the engine, so the alarm degrades to a single sound notification.
     if (QGuiApplication::platformName() == QLatin1String("offscreen")) {
-        if (kind == Remindme::AlarmKind::Expiry) {
-            presentSound(timer);
-        }
+        presentSound(timer);
         return;
     }
-    presentDialog(timer, kind);
+    presentDialog(timer);
+}
+
+void AlarmPresenter::presentReminders(const QList<Remindme::TimerInfo> &timers)
+{
+    // A reminder for still-running timers has no headless form: there is nothing to ring.
+    if (QGuiApplication::platformName() == QLatin1String("offscreen")) {
+        return;
+    }
+
+    // One window lists every waiting timer; a new request replaces it so it never shows a stale set.
+    auto *dialog = new ReminderListDialog(timers);
+    const QPointer<ReminderListDialog> previous = m_reminders;
+    m_reminders = dialog;
+    // Count before closing the previous window: its later destruction decrements the count again,
+    // so the presenter never reports "nothing on screen" while this window is still open.
+    ++m_openDialogCount;
+    connect(dialog, &ReminderListDialog::snoozeRequested, this, [this](const Remindme::TimerInfo &timer, int minutes) {
+        m_engine.snooze(timer, qint64(minutes) * 60 * 1000);
+    });
+    connect(dialog, &ReminderListDialog::cancelRequested, this, [this](const Remindme::TimerInfo &timer) {
+        m_engine.cancel(timer.id);
+    });
+    connect(dialog, &QObject::destroyed, this, &AlarmPresenter::onDialogClosed);
+    dialog->show();
+    // This process runs in the background, so the window could otherwise map behind the active
+    // window (especially on Wayland).
+    dialog->raise();
+    dialog->activateWindow();
+    if (previous) {
+        previous->close();
+    }
 }
 
 bool AlarmPresenter::isPresenting() const
@@ -32,11 +61,19 @@ bool AlarmPresenter::isPresenting() const
     return m_openDialogCount > 0 || m_pendingSoundCount > 0;
 }
 
-void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::AlarmKind kind)
+void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer)
 {
-    // The dialog shows the message and, for the expiry alarm, plays a looping alarm sound
-    // (see RemindmeAlarmDialog) until the user snoozes or dismisses it.
-    auto *dialog = new RemindmeAlarmDialog(timer, kind, m_engine.nowMs());
+    // The overview lists still-active timers, so an expiry makes its rows stale; close it and let
+    // the user reopen the list rather than act on a timer that already fired.
+    // shortcut: the overview is not refreshed for timer changes made elsewhere, close it instead;
+    // refresh it live if that becomes annoying.
+    if (m_reminders) {
+        m_reminders->close();
+    }
+
+    // The dialog shows the message and loops the alarm sound until the user snoozes or dismisses
+    // it (see RemindmeAlarmDialog).
+    auto *dialog = new RemindmeAlarmDialog(timer, m_engine.nowMs());
     const QPointer<RemindmeAlarmDialog> previous = m_dialogs.value(timer.id);
     m_dialogs.insert(timer.id, dialog);
     // Count before closing the previous window: its later destruction decrements the count again,
@@ -45,9 +82,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     connect(dialog, &RemindmeAlarmDialog::snoozeRequested, this, [this, timer](int minutes) {
         m_engine.snooze(timer, qint64(minutes) * 60 * 1000);
     });
-    // "Cancel timer" (still-active) or "Dismiss" (expired) clears the engine entry; cancel handles
-    // both. The dialog also emits this when an expiry window is closed (X or Esc); a closed
-    // reminder window emits nothing and leaves its timer running.
+    // Dismiss clears the engine entry, which is how a fired alarm is acknowledged; the dialog also
+    // emits this when an alarm window is closed (X or Esc).
     connect(dialog, &RemindmeAlarmDialog::dismissRequested, this, [this, timer]() {
         m_engine.cancel(timer.id);
     });
@@ -68,11 +104,8 @@ void AlarmPresenter::presentDialog(const Remindme::TimerInfo &timer, Remindme::A
     dialog->raise();
     dialog->activateWindow();
 
-    // A reminder opened from "rme list" can be superseded by the expiry alarm for the same timer;
-    // close the earlier window so one timer never has two windows at once. Detach first, so this
-    // programmatic close is not taken for the user acknowledging the replacement.
+    // A re-presented alarm for the same timer replaces its window instead of stacking a duplicate.
     if (previous) {
-        disconnect(previous.data(), &RemindmeAlarmDialog::dismissRequested, this, nullptr);
         previous->close();
     }
 }
