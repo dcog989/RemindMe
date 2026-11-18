@@ -12,16 +12,10 @@ constexpr qint64 overdueNoticeThresholdMs = 60 * 1000;
 
 // Upper bound of the snooze spin box, in minutes (24 h).
 constexpr int maxSnoozeMinutes = 60 * 24;
-
-// KWin refuses to resize a decorated Wayland window below 150x150 client pixels
-// (XdgToplevelWindow::minSize()). This dialog's own height hint is smaller, so a vertical
-// resize would stop above the height it opened at and never come back down. Starting at the
-// same floor makes the opening height the height the user can always drag back to.
-constexpr int minWindowHeight = 150;
 }
 
-// The expiry alarm: title "Timer finished", the timer's message, and a looping sound until the
-// user snoozes or dismisses it.
+// The expiry alarm: title "RemindMe timer finished", the timer's message, and a looping sound
+// until the user snoozes or dismisses it.
 class RemindmeAlarmDialog : public QDialog
 {
     Q_OBJECT

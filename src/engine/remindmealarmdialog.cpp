@@ -19,6 +19,13 @@
 
 namespace
 {
+// Same width floor as the reminder overview, so the two windows feel like one family.
+constexpr int minWidth = 480;
+
+// Ceiling for the width: a long message wraps inside the window instead of widening it across
+// the screen.
+constexpr int maxWidth = 640;
+
 // Text for the "overdue" line shown when an expired timer surfaces later than its deadline (e.g.
 // the system was off at the time). Missing the deadline by less than the notice threshold is
 // normal scheduling jitter, so an empty string is returned for a timely alarm.
@@ -44,35 +51,54 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
 {
     setAttribute(Qt::WA_DeleteOnClose);
 
-    setMinimumHeight(Remindme::minWindowHeight);
-    setWindowTitle(Remindme::alarmTitle());
-    auto *layout = new QVBoxLayout(this);
-    if (!timer.message.isEmpty()) {
-        auto *messageLabel = new QLabel(timer.message, this);
-        messageLabel->setWordWrap(true);
-        layout->addWidget(messageLabel);
-    }
-    // A timer that expired while the system was off (e.g. a shutdown) surfaces later than its
-    // deadline. Show when it was due and how long ago, so a late alarm is not mistaken for one
-    // that fired on time.
+    setWindowTitle(i18n("RemindMe timer finished"));
+    auto *layout = new QHBoxLayout(this);
+
+    // Message and overdue line on the left, the controls at the right: the same row shape as a
+    // reminder overview row (remindmereminderlistdialog.cpp).
     const QString overdue = overdueText(timer.deadline, nowMs);
-    if (!overdue.isEmpty()) {
-        auto *overdueLabel = new QLabel(overdue, this);
-        overdueLabel->setWordWrap(true);
-        layout->addWidget(overdueLabel);
+    // A timer without a message has no text column at all, so the controls are not pushed apart
+    // by a stretch of empty window.
+    const bool hasText = !timer.message.isEmpty() || !overdue.isEmpty();
+    if (hasText) {
+        auto *text = new QWidget(this);
+        auto *textLayout = new QVBoxLayout(text);
+        textLayout->setContentsMargins(0, 0, 0, 0);
+        if (!timer.message.isEmpty()) {
+            auto *messageLabel = new QLabel(timer.message, this);
+            messageLabel->setTextFormat(Qt::PlainText);
+            messageLabel->setWordWrap(true);
+            textLayout->addWidget(messageLabel);
+        }
+        // A timer that expired while the system was off (e.g. a shutdown) surfaces later than its
+        // deadline. Show when it was due and how long ago, so a late alarm is not mistaken for one
+        // that fired on time.
+        if (!overdue.isEmpty()) {
+            auto *overdueLabel = new QLabel(overdue, this);
+            overdueLabel->setWordWrap(true);
+            textLayout->addWidget(overdueLabel);
+        }
+        textLayout->addStretch();
+        layout->addWidget(text, 1);
     }
 
-    auto *buttons = new QHBoxLayout;
     auto *snoozeSpin = new QSpinBox(this);
     snoozeSpin->setRange(1, Remindme::maxSnoozeMinutes);
     snoozeSpin->setValue(Remindme::snoozeDurationMs / (60 * 1000));
     snoozeSpin->setSuffix(i18n(" min"));
     auto *snoozeButton = new QPushButton(i18n("Snooze"), this);
     auto *dismissButton = new QPushButton(i18n("Dismiss"), this);
-    buttons->addWidget(snoozeSpin);
-    buttons->addWidget(snoozeButton);
-    buttons->addWidget(dismissButton);
-    layout->addLayout(buttons);
+    layout->addWidget(snoozeSpin);
+    layout->addWidget(snoozeButton);
+    layout->addWidget(dismissButton);
+
+    // Fixed to its content, like the overview: a fixed-size window cannot be dragged into KWin's
+    // 150 px floor and never opens with empty space. The height follows the wrapped text. The
+    // width floor only applies when there is text to fill it; a controls-only alarm opens narrow.
+    layout->activate();
+    setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
+    const int contentWidth = qMin(qMax(layout->sizeHint().width(), hasText ? minWidth : 0), maxWidth);
+    setFixedSize(contentWidth, layout->hasHeightForWidth() ? layout->heightForWidth(contentWidth) : layout->sizeHint().height());
 
     connect(snoozeButton, &QPushButton::clicked, this, [this, snoozeSpin]() {
         Q_EMIT snoozeRequested(snoozeSpin->value());
