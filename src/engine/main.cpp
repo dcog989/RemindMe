@@ -52,20 +52,26 @@ int main(int argc, char **argv)
     // remaining timers; the process only exits once the engine reports nothing left to do.
     app.setQuitOnLastWindowClosed(false);
 
-    // Single-instance guard, before any side effects: constructing the engine may load state and
-    // back up a corrupt file, and autostart writes a .desktop entry. If another helper already
-    // owns the name, exit without touching either.
+    // Build the object tree before taking the service name: the bus delivers a Match() call as
+    // soon as the name is owned, so the object must already exist. The name is still taken before
+    // any state-changing side effect (autostart write, alarm presentation), so a second activation
+    // racing this one exits here without duplicating them.
     QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
         qWarning() << "No D-Bus session bus available; cannot start" << s_serviceName;
         return 1;
     }
-    if (!bus.registerService(s_serviceName)) {
-        qWarning() << "Another instance already owns" << s_serviceName << "; exiting";
+    RemindmeEngine engine;
+    new RemindmeAdaptor(&engine);
+    if (!bus.registerObject(QStringLiteral("/"), &engine)) {
+        qWarning() << "Could not register D-Bus object for" << s_serviceName;
         return 1;
     }
-
-    RemindmeEngine engine;
+    if (!bus.registerService(s_serviceName)) {
+        qWarning() << "Another instance already owns" << s_serviceName << "; exiting";
+        bus.unregisterObject(QStringLiteral("/"));
+        return 1;
+    }
 
     // Enable the autostart entry while a timer or an unacknowledged alarm exists so it is
     // relaunched next login, and disable it once none are left so an idle helper is not started
@@ -109,14 +115,6 @@ int main(int argc, char **argv)
     // dialog was open). The engine loaded them from the persisted "fired" entries; showing them
     // now also keeps the presenter busy so tryQuit() cannot drop them.
     engine.replayPendingAlarms();
-
-    new RemindmeAdaptor(&engine);
-
-    if (!bus.registerObject(QStringLiteral("/"), &engine)) {
-        qWarning() << "Could not register D-Bus object for" << s_serviceName;
-        bus.unregisterService(s_serviceName);
-        return 1;
-    }
 
     // One-shot fallback for the single case that emits no count change: an activation that
     // only queried an already-empty state. Give any pending call time to arrive, then exit
