@@ -1,7 +1,10 @@
 #include "remindmealarmpresenter.h"
 #include "remindmealarmdialog.h"
+#include "remindmealarmnotification.h"
 #include "remindmeengine.h"
 #include "remindmereminderlistdialog.h"
+
+#include <KConfig>
 
 #include <QApplication>
 #include <QLabel>
@@ -13,6 +16,8 @@
 #include <QTest>
 #include <QWidget>
 
+#include <memory>
+
 using namespace Remindme;
 
 // The presenter decides the process's right to exit from its open-window and in-flight-sound
@@ -22,6 +27,10 @@ using namespace Remindme;
 class RemindmeAlarmPresenterTest : public QObject
 {
     Q_OBJECT
+
+    std::unique_ptr<QTemporaryDir> tempDir;
+    std::unique_ptr<RemindmeEngine> engine;
+    std::unique_ptr<AlarmPresenter> presenter;
 
     template<typename T>
     static QList<T *> visibleDialogs()
@@ -52,57 +61,52 @@ class RemindmeAlarmPresenterTest : public QObject
     }
 
 private Q_SLOTS:
+    void init()
+    {
+        tempDir = std::make_unique<QTemporaryDir>();
+        QVERIFY(tempDir->isValid());
+        engine = std::make_unique<RemindmeEngine>(nullptr, tempDir->filePath(QStringLiteral("timers.json")));
+        presenter = std::make_unique<AlarmPresenter>(*engine);
+    }
+
     void testWindowLifetimeDrivesIdleState()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-        QSignalSpy finishedSpy(&presenter, &AlarmPresenter::presentationsFinished);
+        QSignalSpy finishedSpy(presenter.get(), &AlarmPresenter::presentationsFinished);
 
-        QVERIFY(!presenter.isPresenting());
+        QVERIFY(!presenter->isPresenting());
 
-        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
-        QVERIFY(presenter.isPresenting());
+        presenter->presentExpiry(timer(1, QStringLiteral("tea")));
+        QVERIFY(presenter->isPresenting());
         QCOMPARE(finishedSpy.count(), 0); // not idle while the window is open
 
         delete visibleDialogs<RemindmeAlarmDialog>().constFirst();
 
         // The host may exit again once the window is gone, and is told exactly once.
-        QVERIFY(!presenter.isPresenting());
+        QVERIFY(!presenter->isPresenting());
         QCOMPARE(finishedSpy.count(), 1);
     }
 
     void testFinishOnlyAfterTheLastWindowCloses()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-        QSignalSpy finishedSpy(&presenter, &AlarmPresenter::presentationsFinished);
+        QSignalSpy finishedSpy(presenter.get(), &AlarmPresenter::presentationsFinished);
 
-        presenter.presentExpiry(timer(1, QStringLiteral("one")));
-        presenter.presentExpiry(timer(2, QStringLiteral("two")));
+        presenter->presentExpiry(timer(1, QStringLiteral("one")));
+        presenter->presentExpiry(timer(2, QStringLiteral("two")));
         const QList<RemindmeAlarmDialog *> dialogs = visibleDialogs<RemindmeAlarmDialog>();
         QCOMPARE(dialogs.size(), 2);
 
         delete dialogs.at(0);
-        QVERIFY(presenter.isPresenting()); // one window still open
+        QVERIFY(presenter->isPresenting()); // one window still open
         QCOMPARE(finishedSpy.count(), 0);
 
         delete dialogs.at(1);
-        QVERIFY(!presenter.isPresenting());
+        QVERIFY(!presenter->isPresenting());
         QCOMPARE(finishedSpy.count(), 1);
     }
 
     void testReminderOverviewShowsEveryTimer()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        presenter.presentReminders({timer(1, QStringLiteral("one")), timer(2, QStringLiteral("two")), timer(3, QStringLiteral("three"))});
+        presenter->presentReminders({timer(1, QStringLiteral("one")), timer(2, QStringLiteral("two")), timer(3, QStringLiteral("three"))});
 
         // One window for the whole set, with one cancel button per timer.
         const QList<ReminderListDialog *> dialogs = visibleDialogs<ReminderListDialog>();
@@ -122,69 +126,48 @@ private Q_SLOTS:
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         QCOMPARE(dialog->findChildren<QPushButton *>().size(), 2);
-        QVERIFY(presenter.isPresenting());
+        QVERIFY(presenter->isPresenting());
     }
 
     void testCancelFromTheEngineClosesTheAlarmWindow()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        QVERIFY(engine.create(60, QStringLiteral("tea")).has_value());
-        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
+        QVERIFY(engine->create(60, QStringLiteral("tea")).has_value());
+        presenter->presentExpiry(timer(1, QStringLiteral("tea")));
         QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 1);
 
         // "rme cancel 1": the engine drops the entry, so the window must go with it.
-        QVERIFY(engine.cancel(1));
+        QVERIFY(engine->cancel(1));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
         QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 0);
-        QVERIFY(!presenter.isPresenting());
-        QVERIFY(!engine.contains(1));
+        QVERIFY(!presenter->isPresenting());
+        QVERIFY(!engine->contains(1));
     }
 
     void testReplacingAnAlarmKeepsItsTimer()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        QVERIFY(engine.create(60, QStringLiteral("tea")).has_value());
-        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
-        presenter.presentExpiry(timer(1, QStringLiteral("tea")));
+        QVERIFY(engine->create(60, QStringLiteral("tea")).has_value());
+        presenter->presentExpiry(timer(1, QStringLiteral("tea")));
+        presenter->presentExpiry(timer(1, QStringLiteral("tea")));
 
         // Replacing the window must not dismiss the timer it presents.
-        QVERIFY(engine.contains(1));
+        QVERIFY(engine->contains(1));
         QCOMPARE(visibleDialogs<RemindmeAlarmDialog>().size(), 1);
     }
 
     void testReminderOverviewWidthIsCapped()
     {
         // The window is fixed-size, so a long message must not widen it past the screen.
-        constexpr int maxOverviewWidth = 640;
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        presenter.presentReminders({timer(1, QString(500, QLatin1Char('x')))});
+        presenter->presentReminders({timer(1, QString(500, QLatin1Char('x')))});
 
         const QList<ReminderListDialog *> dialogs = visibleDialogs<ReminderListDialog>();
         QCOMPARE(dialogs.size(), 1);
-        QVERIFY(dialogs.constFirst()->width() <= maxOverviewWidth);
+        QVERIFY(dialogs.constFirst()->width() <= Remindme::dialogMaxWidth);
     }
 
     void testReminderOverviewReportsNoTimers()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
         // "rme list" with nothing active still opens the overview, which says so.
-        presenter.presentReminders({});
+        presenter->presentReminders({});
         const QList<ReminderListDialog *> dialogs = visibleDialogs<ReminderListDialog>();
         QCOMPARE(dialogs.size(), 1);
         bool sawEmptyText = false;
@@ -192,17 +175,12 @@ private Q_SLOTS:
             sawEmptyText = sawEmptyText || label->text() == QStringLiteral("No active timers.");
         }
         QVERIFY(sawEmptyText);
-        QVERIFY(presenter.isPresenting());
+        QVERIFY(presenter->isPresenting());
     }
 
     void testLongMessageStaysOnScreen()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        presenter.presentExpiry(timer(1, QStringLiteral("word ").repeated(2000)));
+        presenter->presentExpiry(timer(1, QStringLiteral("word ").repeated(2000)));
 
         // The text column scrolls once it would exceed a third of the screen, so a long message
         // can never make the fixed-size window taller than the display.
@@ -213,74 +191,61 @@ private Q_SLOTS:
 
     void testLongUnbrokenMessageIsCapped()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
         // A single token cannot wrap: the fixed width must still cap it (the tooltip carries the
         // full text).
-        presenter.presentExpiry(timer(1, QString(2000, QLatin1Char('x'))));
+        presenter->presentExpiry(timer(1, QString(2000, QLatin1Char('x'))));
 
         const QList<RemindmeAlarmDialog *> dialogs = visibleDialogs<RemindmeAlarmDialog>();
         QCOMPARE(dialogs.size(), 1);
-        constexpr int maxAlarmWidth = 640;
-        QVERIFY(dialogs.constFirst()->width() <= maxAlarmWidth);
+        QVERIFY(dialogs.constFirst()->width() <= Remindme::dialogMaxWidth);
         QVERIFY(dialogs.constFirst()->height() <= QGuiApplication::primaryScreen()->availableGeometry().height());
     }
 
     void testDismissButtonAcknowledgesTheAlarm()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        const auto created = engine.create(60, QStringLiteral("tea"));
+        const auto created = engine->create(60, QStringLiteral("tea"));
         QVERIFY(created.has_value());
-        presenter.presentExpiry(*created);
+        presenter->presentExpiry(*created);
 
         clickButton(visibleDialogs<RemindmeAlarmDialog>().constFirst(), QStringLiteral("Dismiss"));
 
         // Dismiss is an acknowledgement: the entry leaves the engine, so it is not replayed.
-        QVERIFY(!engine.contains(created->id));
+        QVERIFY(!engine->contains(created->id));
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QVERIFY(!presenter.isPresenting());
+        QVERIFY(!presenter->isPresenting());
     }
 
     void testClosingTheAlarmAcknowledgesIt()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        const auto created = engine.create(60, QStringLiteral("tea"));
+        const auto created = engine->create(60, QStringLiteral("tea"));
         QVERIFY(created.has_value());
-        presenter.presentExpiry(*created);
+        presenter->presentExpiry(*created);
 
         // X or Esc closes the window; the alarm must not stay pending behind it.
         visibleDialogs<RemindmeAlarmDialog>().constFirst()->reject();
 
-        QVERIFY(!engine.contains(created->id));
+        QVERIFY(!engine->contains(created->id));
     }
 
     void testSnoozeKeepsTheTimer()
     {
-        QTemporaryDir tempDir;
-        QVERIFY(tempDir.isValid());
-        RemindmeEngine engine(nullptr, tempDir.filePath(QStringLiteral("timers.json")));
-        AlarmPresenter presenter(engine);
-
-        const auto created = engine.create(60, QStringLiteral("tea"));
+        const auto created = engine->create(60, QStringLiteral("tea"));
         QVERIFY(created.has_value());
-        presenter.presentExpiry(*created);
+        presenter->presentExpiry(*created);
 
         clickButton(visibleDialogs<RemindmeAlarmDialog>().constFirst(), QStringLiteral("Snooze"));
 
-        const QList<TimerInfo> timers = engine.list();
+        const QList<TimerInfo> timers = engine->list();
         QCOMPARE(timers.size(), 1);
         QVERIFY(timers.constFirst().deadline > created->deadline);
+    }
+
+    void testNotifyrcDefinesTheAlarmEvent()
+    {
+        // The event id lives in the code and in the installed notifyrc. A rename in one of them
+        // makes KNotification fall back to an event with no configured sound.
+        KConfig notifyrc(QStringLiteral(REMINDME_NOTIFYRC_PATH), KConfig::SimpleConfig);
+        QVERIFY(notifyrc.hasGroup(QStringLiteral("Event/%1").arg(QString::fromLatin1(Remindme::alarmEventId))));
     }
 
     // A failed assertion would otherwise leave a window behind for the next test to find.
@@ -292,6 +257,9 @@ private Q_SLOTS:
         for (RemindmeAlarmDialog *dialog : visibleDialogs<RemindmeAlarmDialog>()) {
             delete dialog;
         }
+        presenter.reset();
+        engine.reset();
+        tempDir.reset();
     }
 };
 

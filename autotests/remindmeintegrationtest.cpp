@@ -28,6 +28,9 @@ class RemindmeIntegrationTest : public KRunner::AbstractRunnerTest
     std::unique_ptr<QTemporaryDir> stateDir;
     QProcess *runnerProcess = nullptr;
     QProcess *dbusDaemon = nullptr;
+    // Environment the runner (and any second instance) starts with: private bus, isolated XDG
+    // dirs, headless platform and a fixed locale for the English assertions.
+    QProcessEnvironment runnerEnv;
 
     static QString serviceName()
     {
@@ -141,6 +144,9 @@ private Q_SLOTS:
         // would edit the developer's real ~/.config/autostart entry.
         daemonEnv.insert(QStringLiteral("XDG_CONFIG_HOME"), stateDir->path());
         daemonEnv.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
+        // The runner is activated by this daemon and inherits its locale, so pin the language the
+        // assertions below are written in instead of the developer's.
+        daemonEnv.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
         dbusDaemon->setProcessEnvironment(daemonEnv);
         dbusDaemon->start(QStringLiteral("dbus-daemon"), {QStringLiteral("--session"), QStringLiteral("--print-address")});
         QVERIFY(dbusDaemon->waitForStarted());
@@ -165,12 +171,13 @@ private Q_SLOTS:
         qputenv("QT_QPA_PLATFORM", "offscreen"); // don't pop up alarm windows during tests
 
         runnerProcess = new QProcess(this);
-        QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-        env.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), busAddress);
-        env.insert(QStringLiteral("XDG_DATA_HOME"), stateDir->path());
-        env.insert(QStringLiteral("XDG_CONFIG_HOME"), stateDir->path());
-        env.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
-        runnerProcess->setProcessEnvironment(env);
+        runnerEnv = QProcessEnvironment::systemEnvironment();
+        runnerEnv.insert(QStringLiteral("DBUS_SESSION_BUS_ADDRESS"), busAddress);
+        runnerEnv.insert(QStringLiteral("XDG_DATA_HOME"), stateDir->path());
+        runnerEnv.insert(QStringLiteral("XDG_CONFIG_HOME"), stateDir->path());
+        runnerEnv.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("offscreen"));
+        runnerEnv.insert(QStringLiteral("LC_ALL"), QStringLiteral("C"));
+        runnerProcess->setProcessEnvironment(runnerEnv);
         runnerProcess->setProcessChannelMode(QProcess::ForwardedChannels);
 
         QEventLoop waitLoop;
@@ -297,6 +304,14 @@ private Q_SLOTS:
         const QList<QueryMatch> timers = listTimers();
         QCOMPARE(timers.size(), 1);
         QVERIFY(timers.constFirst().text().contains(QLatin1String("coffee")));
+    }
+
+    void testStateFileLivesUnderTheAppDataDir()
+    {
+        QVERIFY(createTimer(QStringLiteral("10:00"), QStringLiteral("path")) >= 1);
+        // main() deliberately sets no organization name. Adding one would move timers.json and drop
+        // every existing timer on the next upgrade.
+        QVERIFY(QFile::exists(stateDir->path() + QStringLiteral("/krunner-remindme/timers.json")));
     }
 
     void testListEmpty()
@@ -468,6 +483,33 @@ private Q_SLOTS:
             return false;
         };
         QTRY_VERIFY_WITH_TIMEOUT(!sawRingingRow(), 5000);
+    }
+
+    void testSecondInstanceKeepsState()
+    {
+        // The autostart entry can race a manual launch at login. The second starter must take no
+        // service name, no lock and no state write.
+        const int id = createTimer(QStringLiteral("10:00"), QStringLiteral("locked"));
+        QVERIFY(id >= 1);
+        const QString statePath = stateDir->path() + QStringLiteral("/krunner-remindme/timers.json");
+
+        QFile before(statePath);
+        QVERIFY(before.open(QIODevice::ReadOnly));
+        const QByteArray beforeBytes = before.readAll();
+        before.close();
+
+        QProcess second;
+        second.setProcessEnvironment(runnerEnv);
+        second.setProcessChannelMode(QProcess::ForwardedChannels);
+        second.start(QStringLiteral(KRUNNER_TEST_DBUS_EXECUTABLE));
+        QVERIFY(second.waitForFinished(5000));
+        QCOMPARE(second.exitStatus(), QProcess::NormalExit);
+        QCOMPARE(second.exitCode(), 1);
+
+        QFile after(statePath);
+        QVERIFY(after.open(QIODevice::ReadOnly));
+        QCOMPARE(after.readAll(), beforeBytes);
+        QCOMPARE(activeTimerCount(), 1);
     }
 
     void testIdleExitAndReactivation()

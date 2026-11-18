@@ -19,13 +19,17 @@ class RemindmeAdapterTest : public QObject
 
     QScopedPointer<QTemporaryDir> tempDir;
     QScopedPointer<RemindmeEngine> engine;
+    // The engine only borrows an injected scheduler, so the test must keep (and free) it.
+    QScopedPointer<TestDeadlineScheduler> scheduler;
     RemindmeAdaptor *adaptor = nullptr;
     qint64 fakeNow = 0;
 
 private Q_SLOTS:
     void initTestCase()
     {
-        KLocalizedString::setApplicationDomain(QByteArrayLiteral("krunner_remindme"));
+        // A domain with no installed catalog, so i18n returns the source strings the assertions
+        // spell out (the real domain would translate them on a non-English desktop).
+        KLocalizedString::setApplicationDomain(QByteArrayLiteral("remindme-autotest"));
     }
 
     void init()
@@ -33,9 +37,10 @@ private Q_SLOTS:
         tempDir.reset(new QTemporaryDir);
         QVERIFY(tempDir->isValid());
         fakeNow = 0;
-        engine.reset(new RemindmeEngine(nullptr, tempDir->filePath(QStringLiteral("timers.json")), new TestDeadlineScheduler([this]() {
-                                            return fakeNow;
-                                        })));
+        scheduler.reset(new TestDeadlineScheduler([this]() {
+            return fakeNow;
+        }));
+        engine.reset(new RemindmeEngine(nullptr, tempDir->filePath(QStringLiteral("timers.json")), scheduler.data()));
         // The engine owns the adaptor, so it dies with the engine.
         adaptor = new RemindmeAdaptor(engine.data());
     }
@@ -43,6 +48,7 @@ private Q_SLOTS:
     void cleanup()
     {
         engine.reset();
+        scheduler.reset();
     }
 
     void testTriggerWords()

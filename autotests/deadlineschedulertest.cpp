@@ -20,10 +20,19 @@ private:
     qint64 fakeNow = 0;
 
 private Q_SLOTS:
-    void testFactoryProvidesScheduler()
+    void testFactoryMatchesTimerfdAvailability()
     {
         QScopedPointer<DeadlineScheduler> scheduler(createDeadlineScheduler());
         QVERIFY(scheduler);
+
+        // Where timerfd cannot be armed the factory must hand back the QTimer fallback; an
+        // unusable timerfd scheduler returned here would accept deadlines and never wake.
+        TimerfdDeadlineScheduler probe;
+        if (probe.isUsable()) {
+            QVERIFY(dynamic_cast<TimerfdDeadlineScheduler *>(scheduler.data()));
+        } else {
+            QVERIFY(dynamic_cast<QTimerDeadlineScheduler *>(scheduler.data()));
+        }
     }
 
     void testFiresWhenDeadlineReached()

@@ -31,8 +31,9 @@ private:
 private Q_SLOTS:
     void initTestCase()
     {
-        // The app sets this in main(); without it i18n() warns on every call.
-        KLocalizedString::setApplicationDomain(QByteArrayLiteral("krunner_remindme"));
+        // The app sets this in main(); without it i18n() warns on every call. The autotest domain
+        // has no catalog, so the entry text stays in the source language on any desktop.
+        KLocalizedString::setApplicationDomain(QByteArrayLiteral("remindme-autotest"));
     }
 
     void init()

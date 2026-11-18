@@ -42,7 +42,10 @@ krunner_configure_test(remindmeintegrationtest krunner-remindme
 # The alarm presenter decides the process's right to exit from its open-window count; a wrong count
 # drops a live alarm or keeps the process alive. Drives the windowed path (the sound path needs a
 # notification service).
-ecm_add_test(remindmealarmpresentertest.cpp TEST_NAME remindmealarmpresentertest LINK_LIBRARIES Qt6::Test Qt6::Widgets KF6::CoreAddons KF6::I18n KF6::Notifications)
+ecm_add_test(remindmealarmpresentertest.cpp TEST_NAME remindmealarmpresentertest LINK_LIBRARIES Qt6::Test Qt6::Widgets KF6::CoreAddons KF6::I18n KF6::Notifications KF6::ConfigCore)
+target_compile_definitions(remindmealarmpresentertest PRIVATE
+    REMINDME_NOTIFYRC_PATH="${CMAKE_SOURCE_DIR}/data/krunner-remindme.notifyrc"
+)
 target_sources(remindmealarmpresentertest PRIVATE
     ${REMINDME_CORE_SOURCES}
     ${REMINDME_UI_SOURCES}
