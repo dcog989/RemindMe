@@ -39,9 +39,9 @@ desktop_exec_argument() {
     s=${s//\`/\\\`}
     s=${s//\$/\\\$}
     s=${s//%/%%}
-    s=${s//\\/\\\\}  # sed replacement: a literal backslash must be doubled
-    s=${s//&/\\&}    # sed replacement: '&' means the whole match
-    s=${s//|/\\|}    # sed delimiter
+    s=${s//\\/\\\\} # sed replacement: a literal backslash must be doubled
+    s=${s//&/\\&}   # sed replacement: '&' means the whole match
+    s=${s//|/\\|}   # sed delimiter
     printf '"%s"' "$s"
 }
 exec_arg=$(desktop_exec_argument "$binary")
