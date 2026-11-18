@@ -16,6 +16,12 @@ constexpr int maxSnoozeMinutes = 60 * 24;
 // Maximum time the looping expiry alarm sound plays; the alarm window itself stays open until the
 // user snoozes or dismisses it.
 constexpr qint64 maxAlarmSoundMs = 10 * 60 * 1000;
+
+// Size shared by the alarm window and the reminder overview: one width floor and cap, and a height
+// cap as a share of the screen for long content, so the two windows cannot drift apart.
+constexpr int dialogMinWidth = 480;
+constexpr int dialogMaxWidth = 640;
+constexpr int dialogMaxScreenHeightShare = 3;
 }
 
 // The expiry alarm: title "RemindMe timer finished", the timer's message, and a looping sound

@@ -24,17 +24,6 @@
 
 namespace
 {
-// Same width floor as the reminder overview, so the two windows feel like one family.
-constexpr int minWidth = 480;
-
-// Ceiling for the width: a long message wraps inside the window instead of widening it across
-// the screen.
-constexpr int maxWidth = 640;
-
-// The text column scrolls once it would exceed this share of the screen, so a long message cannot
-// make the fixed-size window taller than the display (same bound as the reminder overview).
-constexpr int maxScreenHeightShare = 3;
-
 // Text for the "overdue" line shown when an expired timer surfaces later than its deadline (e.g.
 // the system was off at the time). Missing the deadline by less than the notice threshold is
 // normal scheduling jitter, so an empty string is returned for a timely alarm.
@@ -78,8 +67,9 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
             messageLabel->setTextFormat(Qt::PlainText);
             messageLabel->setWordWrap(true);
             // A single unbroken word cannot wrap, so the fixed width clips it; the tooltip is the
-            // only place the whole message stays readable.
-            messageLabel->setToolTip(timer.message.toHtmlEscaped());
+            // only place the whole message stays readable. Escaping alone does not make the
+            // tooltip rich text, so a plain "&" would show as "&amp;"; the <p> wrapper does.
+            messageLabel->setToolTip(QStringLiteral("<p>%1</p>").arg(timer.message.toHtmlEscaped()));
             textLayout->addWidget(messageLabel);
         }
         // A timer that expired while the system was off (e.g. a shutdown) surfaces later than its
@@ -99,7 +89,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
         scroll->setFrameShape(QFrame::NoFrame);
         scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         if (const QScreen *screen = QGuiApplication::primaryScreen()) {
-            scroll->setMaximumHeight(screen->availableGeometry().height() / maxScreenHeightShare);
+            scroll->setMaximumHeight(screen->availableGeometry().height() / Remindme::dialogMaxScreenHeightShare);
         }
         layout->addWidget(scroll, 1);
     }
@@ -120,7 +110,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     // controls-only alarm opens narrow.
     layout->activate();
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
-    const int contentWidth = qMin(qMax(layout->sizeHint().width(), hasText ? minWidth : 0), maxWidth);
+    const int contentWidth = qMin(qMax(layout->sizeHint().width(), hasText ? Remindme::dialogMinWidth : 0), Remindme::dialogMaxWidth);
     setFixedSize(contentWidth, layout->sizeHint().height());
 
     connect(snoozeButton, &QPushButton::clicked, this, [this, snoozeSpin]() {

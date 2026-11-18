@@ -14,22 +14,9 @@
 
 #include <KLocalizedString>
 
+#include "remindmealarmdialog.h"
 #include "remindmeengine.h"
 #include "remindmetime.h"
-
-namespace
-{
-// Floor for the window width, so a short list still gets a usable row instead of a narrow strip.
-constexpr int minWidth = 480;
-
-// Ceiling for the window width: a longer message is clipped in its row (and shown as its tooltip)
-// rather than widening this fixed-size window past the screen.
-constexpr int maxWidth = 640;
-
-// The overview opens at its rows' height, up to this share of the available screen; a longer list
-// scrolls instead of producing a window taller than the display.
-constexpr int maxScreenHeightShare = 3;
-}
 
 ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers, QWidget *parent)
     : QDialog(parent)
@@ -57,7 +44,7 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
         // tall enough to show them all. Rows never scroll sideways; a message longer than the
         // window allows is clipped (and shown as a tooltip).
         scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        scroll->setMinimumWidth(qMin(rows->sizeHint().width(), maxWidth));
+        scroll->setMinimumWidth(qMin(rows->sizeHint().width(), Remindme::dialogMaxWidth));
         layout->addWidget(scroll);
     }
 
@@ -67,10 +54,10 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
     // A list too long for the screen scrolls inside it.
     layout->activate();
     const QScreen *screen = QGuiApplication::primaryScreen();
-    const int cap = screen ? screen->availableGeometry().height() / maxScreenHeightShare : 0;
+    const int cap = screen ? screen->availableGeometry().height() / Remindme::dialogMaxScreenHeightShare : 0;
     const QSize content = layout->sizeHint();
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
-    setFixedSize(qMin(qMax(minWidth, content.width()), maxWidth), cap > 0 ? qMin(content.height(), cap) : content.height());
+    setFixedSize(qMin(qMax(Remindme::dialogMinWidth, content.width()), Remindme::dialogMaxWidth), cap > 0 ? qMin(content.height(), cap) : content.height());
 }
 
 QWidget *ReminderListDialog::makeRow(const Remindme::TimerInfo &timer, bool withSeparator)
@@ -95,7 +82,8 @@ QWidget *ReminderListDialog::makeRow(const Remindme::TimerInfo &timer, bool with
 
     auto *descriptionLabel = new QLabel(timer.message.isEmpty() ? i18n("No description") : timer.message, text);
     descriptionLabel->setTextFormat(Qt::PlainText);
-    descriptionLabel->setToolTip(timer.message.toHtmlEscaped());
+    // The <p> wrapper forces rich text: escaping alone leaves "&" visible as "&amp;" in a tooltip.
+    descriptionLabel->setToolTip(QStringLiteral("<p>%1</p>").arg(timer.message.toHtmlEscaped()));
     // Italic sets the description apart from the due line above it.
     QFont descriptionFont = descriptionLabel->font();
     descriptionFont.setItalic(true);
