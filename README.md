@@ -18,18 +18,41 @@ From the KDE Store, inside KRunner:
 
 ### Manual install from archive
 
+The archived binary is built on Fedora 43. It needs glibc 2.42 or newer and Qt/KF6 not older than
+Fedora 43 ships; on an older distribution, build from source (below).
+
 Download from <https://store.kde.org/p/2379079> then:
 
 ```sh
 mkdir -p ~/.local/share/krunner-sources
-rm -rf ~/.local/share/krunner-sources/remindme-* # drop previous extractions, if any
 tar xzf ~/path/to/remindme-*.tar.gz -C ~/.local/share/krunner-sources
 krunner-plugininstaller install ~/.local/share/krunner-sources/remindme-*
 systemctl --user restart plasma-krunner.service
+# Only now drop older extractions, e.g.:
+rm -rf ~/.local/share/krunner-sources/remindme-<previous-version>
 ```
 
 > [!NOTE]
+> Keep the extraction the plugin was installed from: the D-Bus service runs the launcher inside
+> that directory.
+
+> [!NOTE]
 > Optionally, make RemindMe a favorite and move it above others via *System Settings → Search → Plasma Search*.
+
+### Uninstall
+
+Store install: uninstall the plugin from *Get New Plugins…*, then remove the files the launcher
+copied and the login entry:
+
+```sh
+rm -f ~/.local/libexec/remindme/krunner-remindme \
+      ~/.local/share/applications/krunner-remindme.desktop \
+      ~/.local/share/icons/hicolor/scalable/apps/io.github.dcog989.remindme.svg \
+      ~/.local/share/knotifications6/krunner-remindme.notifyrc \
+      ~/.config/autostart/krunner-remindme.desktop
+```
+
+Source install: `./packaging/uninstall.sh`.
 
 ## Usage
 
@@ -94,8 +117,6 @@ just tidy                 # Run clang-tidy over project sources
 ```sh
 just reload             # configure, build, install into ~/.local, restart KRunner
 ```
-
-Uninstall: `bash packaging/uninstall.sh`.
 
 ---
 
