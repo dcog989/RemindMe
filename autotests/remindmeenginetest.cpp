@@ -1,6 +1,6 @@
 #include "remindmeengine.h"
-#include "deadlinescheduler.h"
 #include "remindmetime.h"
+#include "testdeadlinescheduler.h"
 
 #include <QDir>
 #include <QFile>
@@ -12,42 +12,10 @@
 #include <QTemporaryDir>
 #include <QTest>
 
-#include <functional>
-#include <optional>
-#include <utility>
-
 using namespace Remindme;
 
-// Deterministic scheduler for the engine tests: it records the deadline the engine armed and only
-// wakes the engine when the test calls fire(), so expiry never depends on wall time or an event
-// loop. The QTimer-based scheduler's own wait/sweep behaviour is covered separately in
+// The QTimer-based scheduler's own wait/sweep behaviour is covered separately in
 // deadlineschedulertest.cpp.
-class TestDeadlineScheduler : public DeadlineScheduler
-{
-    Q_OBJECT
-
-public:
-    explicit TestDeadlineScheduler(std::function<qint64()> clock, QObject *parent = nullptr)
-        : DeadlineScheduler(std::move(clock), parent)
-    {
-    }
-
-    void setNextDeadline(std::optional<qint64> nextDeadlineMs) override
-    {
-        deadline = nextDeadlineMs;
-    }
-
-    void fire()
-    {
-        // Both real schedulers disarm before emitting (single-shot); mirror that so a missing
-        // engine re-arm is visible to the tests.
-        deadline.reset();
-        Q_EMIT deadlineReached();
-    }
-
-    std::optional<qint64> deadline;
-};
-
 class RemindmeEngineTest : public QObject
 {
     Q_OBJECT

@@ -1,6 +1,6 @@
-#include "deadlinescheduler.h"
 #include "remindmeadaptor.h"
 #include "remindmeengine.h"
+#include "testdeadlinescheduler.h"
 
 #include <QScopedPointer>
 #include <QTemporaryDir>
@@ -8,36 +8,7 @@
 
 #include <KLocalizedString>
 
-#include <functional>
-#include <optional>
-
 using namespace Remindme;
-
-// Deterministic scheduler for the adaptor tests: the engine only needs a clock and a place to
-// record the deadline, and the test decides when it fires.
-class TestDeadlineScheduler : public DeadlineScheduler
-{
-    Q_OBJECT
-
-public:
-    explicit TestDeadlineScheduler(std::function<qint64()> clock)
-        : DeadlineScheduler(std::move(clock))
-    {
-    }
-
-    void setNextDeadline(std::optional<qint64> nextDeadlineMs) override
-    {
-        deadline = nextDeadlineMs;
-    }
-
-    void fire()
-    {
-        deadline.reset();
-        Q_EMIT deadlineReached();
-    }
-
-    std::optional<qint64> deadline;
-};
 
 // Exercises the runner protocol without the bus: Match()/Run()/Config() are plain calls that only
 // need an engine, so the match grammar and the id round trip are checked here instead of through
