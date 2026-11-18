@@ -39,9 +39,6 @@ void AlarmPresenter::presentReminders(const QList<Remindme::TimerInfo> &timers)
     // Count before closing the previous window: its later destruction decrements the count again,
     // so the presenter never reports "nothing on screen" while this window is still open.
     ++m_openDialogCount;
-    connect(dialog, &ReminderListDialog::snoozeRequested, this, [this](const Remindme::TimerInfo &timer, int minutes) {
-        m_engine.snooze(timer, qint64(minutes) * 60 * 1000);
-    });
     connect(dialog, &ReminderListDialog::cancelRequested, this, [this](const Remindme::TimerInfo &timer) {
         m_engine.cancel(timer.id);
     });

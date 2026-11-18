@@ -8,7 +8,6 @@
 #include <QList>
 #include <QPushButton>
 #include <QSignalSpy>
-#include <QSpinBox>
 #include <QTemporaryDir>
 #include <QTest>
 #include <QWidget>
@@ -94,11 +93,11 @@ private Q_SLOTS:
 
         presenter.presentReminders({timer(1, QStringLiteral("one")), timer(2, QStringLiteral("two")), timer(3, QStringLiteral("three"))});
 
-        // One window for the whole set, with a snooze field per timer.
+        // One window for the whole set, with one cancel button per timer.
         const QList<ReminderListDialog *> dialogs = visibleDialogs<ReminderListDialog>();
         QCOMPARE(dialogs.size(), 1);
         ReminderListDialog *dialog = dialogs.constFirst();
-        QCOMPARE(dialog->findChildren<QSpinBox *>().size(), 3);
+        QCOMPARE(dialog->findChildren<QPushButton *>().size(), 3);
         // The height is fixed to the rows, so it can never be dragged into KWin's 150 px floor.
         QCOMPARE(dialog->minimumHeight(), dialog->maximumHeight());
         QCOMPARE(dialog->height(), dialog->minimumHeight());
@@ -111,7 +110,7 @@ private Q_SLOTS:
             }
         }
         QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-        QCOMPARE(dialog->findChildren<QSpinBox *>().size(), 2);
+        QCOMPARE(dialog->findChildren<QPushButton *>().size(), 2);
         QVERIFY(presenter.isPresenting());
     }
 

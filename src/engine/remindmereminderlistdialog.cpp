@@ -10,12 +10,10 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
-#include <QSpinBox>
 #include <QVBoxLayout>
 
 #include <KLocalizedString>
 
-#include "remindmealarmdialog.h"
 #include "remindmeengine.h"
 #include "remindmetime.h"
 
@@ -35,7 +33,7 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
     , m_rowCount(timers.size())
 {
     setAttribute(Qt::WA_DeleteOnClose);
-    setWindowTitle(i18n("RemindMe Reminders"));
+    setWindowTitle(i18n("RemindMe active timers"));
     auto *layout = new QVBoxLayout(this);
     if (timers.isEmpty()) {
         layout->addWidget(new QLabel(i18n("No active timers."), this));
@@ -115,28 +113,17 @@ QWidget *ReminderListDialog::makeRow(const Remindme::TimerInfo &timer, bool with
         rowLayout->addWidget(separator);
     }
 
-    auto *snoozeSpin = new QSpinBox(content);
-    snoozeSpin->setRange(1, Remindme::maxSnoozeMinutes);
-    snoozeSpin->setValue(Remindme::snoozeDurationMs / (60 * 1000));
-    snoozeSpin->setSuffix(i18n(" min"));
-    auto *snoozeButton = new QPushButton(i18n("Snooze"), content);
     auto *cancelButton = new QPushButton(i18n("Cancel timer"), content);
-    layout->addWidget(snoozeSpin);
-    layout->addWidget(snoozeButton);
     layout->addWidget(cancelButton);
 
-    // The row goes away once acted on: a snoozed or cancelled timer is no longer waiting here,
-    // and leaving it would show a timer that no longer matches the engine.
+    // The row goes away once acted on: a cancelled timer is no longer waiting here, and leaving
+    // it would show a timer that no longer matches the engine.
     const auto dropRow = [this, row]() {
         row->deleteLater();
         if (--m_rowCount <= 0) {
             close();
         }
     };
-    connect(snoozeButton, &QPushButton::clicked, this, [this, timer, snoozeSpin, dropRow]() {
-        Q_EMIT snoozeRequested(timer, snoozeSpin->value());
-        dropRow();
-    });
     connect(cancelButton, &QPushButton::clicked, this, [this, timer, dropRow]() {
         Q_EMIT cancelRequested(timer);
         dropRow();
