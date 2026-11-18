@@ -1,6 +1,7 @@
 #include "qtimerdeadlinescheduler.h"
 
 #include <algorithm>
+#include <limits>
 #include <utility>
 
 namespace
@@ -31,7 +32,9 @@ void QTimerDeadlineScheduler::setNextDeadline(std::optional<qint64> nextDeadline
     if (!m_sweepTimer.isActive()) {
         m_sweepTimer.start();
     }
-    m_deadlineTimer.start(std::max<qint64>(0, *m_deadline - nowMs()));
+    // QTimer::start() takes an int: a far-future deadline would wrap negative and never start.
+    const qint64 waitMs = std::clamp<qint64>(*m_deadline - nowMs(), 0, std::numeric_limits<int>::max());
+    m_deadlineTimer.start(static_cast<int>(waitMs));
 }
 
 void QTimerDeadlineScheduler::checkDeadline()

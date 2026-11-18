@@ -15,8 +15,9 @@ public:
     explicit TimerfdDeadlineScheduler(QObject *parent = nullptr);
     ~TimerfdDeadlineScheduler() override;
 
-    // False when the timerfd could not be created. createDeadlineScheduler() then substitutes the
-    // QTimer scheduler, so deadlines still fire instead of silently never being armed.
+    // False when the timerfd could not be created or armed. createDeadlineScheduler() then
+    // substitutes the QTimer scheduler, so deadlines still fire instead of silently never being
+    // armed.
     [[nodiscard]] bool isUsable() const;
 
     void setNextDeadline(std::optional<qint64> nextDeadlineMs) override;
