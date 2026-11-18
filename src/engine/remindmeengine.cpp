@@ -12,9 +12,13 @@
 #include <QStandardPaths>
 
 #include <algorithm>
+#include <cerrno>
 #include <limits>
 #include <optional>
 #include <utility>
+
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "deadlinescheduler.h"
 #include "remindmetime.h"
@@ -231,9 +235,25 @@ void RemindmeEngine::saveToDisk() const
         file.cancelWriting();
         return;
     }
+    // commit() only renames the temp file, so a power cut could drop the change after the caller
+    // reported success. Sync the file before the rename and the directory after it.
+    if (::fsync(file.handle()) != 0) {
+        qWarning() << "Could not sync timer state file" << path << "errno" << errno;
+    }
     if (!file.commit()) {
         qWarning() << "Could not commit timer state file" << path << file.errorString();
+        return;
     }
+    const QByteArray directoryPath = QFile::encodeName(QFileInfo(path).absolutePath());
+    const int directoryFd = ::open(directoryPath.constData(), O_RDONLY | O_DIRECTORY | O_CLOEXEC);
+    if (directoryFd < 0) {
+        qWarning() << "Could not open timer state directory" << directoryPath << "errno" << errno;
+        return;
+    }
+    if (::fsync(directoryFd) != 0) {
+        qWarning() << "Could not sync timer state directory" << directoryPath << "errno" << errno;
+    }
+    ::close(directoryFd);
 }
 
 void RemindmeEngine::scheduleExpiryCheck()
