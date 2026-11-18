@@ -11,6 +11,7 @@
 #include <QPushButton>
 #include <QScreen>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QSpinBox>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -58,8 +59,11 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     // A timer without a message has no text column at all, so the controls are not pushed apart
     // by a stretch of empty window.
     const bool hasText = !timer.message.isEmpty() || !overdue.isEmpty();
+    // Needed by the sizing below: a scroll area reports a fixed default hint, not the text's size.
+    QWidget *text = nullptr;
+    QScrollArea *scroll = nullptr;
     if (hasText) {
-        auto *text = new QWidget(this);
+        text = new QWidget(this);
         auto *textLayout = new QVBoxLayout(text);
         textLayout->setContentsMargins(0, 0, 0, 0);
         if (!timer.message.isEmpty()) {
@@ -83,7 +87,7 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
         }
         textLayout->addStretch();
 
-        auto *scroll = new QScrollArea(this);
+        scroll = new QScrollArea(this);
         scroll->setWidgetResizable(true);
         scroll->setWidget(text);
         scroll->setFrameShape(QFrame::NoFrame);
@@ -108,12 +112,24 @@ RemindmeAlarmDialog::RemindmeAlarmDialog(const Remindme::TimerInfo &timer, qint6
     layout->addLayout(controls);
 
     // Fixed to its content, like the overview: a fixed-size window cannot be dragged into KWin's
-    // 150 px floor and never opens with empty space. The height follows the wrapped text, capped by
-    // the scroll area above. The width floor only applies when there is text to fill it; a
-    // controls-only alarm opens narrow.
+    // 150 px floor and never opens with empty space. The width is whatever the widest row needs
+    // (the snooze/dismiss row is always present) and the height follows the wrapped text, capped by
+    // the scroll area above.
     layout->activate();
     setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
-    const int contentWidth = qMin(qMax(layout->sizeHint().width(), hasText ? Remindme::dialogMinWidth : 0), Remindme::dialogMaxWidth);
+    const int contentWidth = qMin(layout->sizeHint().width(), Remindme::dialogMaxWidth);
+    if (scroll) {
+        // The scroll area's own hint is a fixed default (several times taller than one line), so
+        // the window would open with empty space under a short message. Size it to the wrapped
+        // text instead, keeping the screen-height cap: a longer message then scrolls inside it.
+        const int textWidth =
+            contentWidth - layout->contentsMargins().left() - layout->contentsMargins().right() - scroll->verticalScrollBar()->sizeHint().width();
+        const int wrappedHeight = text->heightForWidth(textWidth);
+        if (wrappedHeight > 0) {
+            scroll->setMaximumHeight(qMin(wrappedHeight, scroll->maximumHeight()));
+        }
+        layout->invalidate();
+    }
     setFixedSize(contentWidth, layout->sizeHint().height());
 
     connect(snoozeButton, &QPushButton::clicked, this, [this, snoozeSpin]() {
