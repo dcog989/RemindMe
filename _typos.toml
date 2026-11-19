@@ -1,5 +1,6 @@
 #
 # typos configuration. CHANGELOG.md is generated from commit history by cocogitto and
 # embeds short commit hashes, which the spell checker reads as words (e.g. "ba").
+# assets/ holds screenshots; their compressed bytes look like words to the checker.
 [files]
-extend-exclude = ["CHANGELOG.md"]
+extend-exclude = ["CHANGELOG.md", "assets/"]

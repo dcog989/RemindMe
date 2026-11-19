@@ -174,9 +174,10 @@ format-clang-staged *files:
 format-shfmt-staged *files:
     shfmt -w {{files}}
 
-# typos over a file list, as the pre-commit hook passes it.
+# typos over a file list, as the pre-commit hook passes it. --force-exclude keeps the
+# _typos.toml exclusions in effect for explicitly named files (staged binaries, CHANGELOG.md).
 lint-typos-staged *files:
-    typos {{files}}
+    typos --force-exclude {{files}}
 
 # shellcheck over a file list, as the pre-commit hook passes it.
 lint-shellcheck-staged *files:

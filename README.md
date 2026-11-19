@@ -6,6 +6,8 @@ A timer plugin for KDE Plasma 6 to create, list, and cancel timers from KRunner 
 ![screenshot 2](assets/screen-2.webp)
 ![screenshot 3](assets/screen-3.webp)
 ![screenshot 4](assets/screen-4.webp)
+![screenshot 5](assets/screen-5.webp)
+![screenshot 6](assets/screen-6.webp)
 
 ## Install
 
@@ -75,12 +77,11 @@ While any timer waits, a tray icon appears too: clicking it opens the same *Remi
 Requirements: C++20 compiler, CMake 3.29+, Qt 6.9+, KDE Frameworks 6.9+, Extra CMake Modules 6.9+, `gettext` and `just`. Tests also need Qt `Test`. `just package` needs podman or docker; `just release` needs `cog` and `gh`.
 
 ```sh
-just --list               # list every recipe, with the justfile's own description
-
 just                      # Verify the repo: lint, format check, then configure, build and test.
 just ci                   # configure, build and test
+just format               # Format C++ sources and shell scripts in place
 just install              # install a built preset
-just package              # build the KDE Store payload (needs podman or docker)
+just package              # build the KDE Store payload
 just release              # bump, push, build the payload and publish the GitHub release
 just reload               # install and restart KRunner with the local runner
 ```
