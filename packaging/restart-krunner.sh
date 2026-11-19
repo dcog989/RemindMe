@@ -14,7 +14,8 @@ pkill -f '[k]runner-remindme' || true
 
 if systemctl --user cat plasma-krunner.service >/dev/null 2>&1; then
     pkill -f '[k]runner --daemon' || true
-    systemctl --user reset-failed plasma-krunner.service || true
+    # No reset-failed first: killing the daemon can let systemd collect this static unit, and
+    # reset-failed would then fail with a misleading "not loaded". restart starts it either way.
     systemctl --user restart plasma-krunner.service
     systemctl --user is-active --quiet plasma-krunner.service || {
         echo "krunner did not start; check: journalctl --user -u plasma-krunner.service" >&2
