@@ -2,6 +2,66 @@
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
 - - -
+## v0.5.0 - 2026-11-19
+#### Features
+- (**list**) drop snooze controls from the active-timers window - (7980eb4) - dcog989
+- (**runner**) make a bare trigger word open the active timers window - (aace731) - dcog989
+- (**tray**) show a tray icon while reminders wait - (9ba89c4) - dcog989
+#### Bug Fixes
+- (**alarm**) size the expiry window to its content width - (8a7024f) - dcog989
+- (**alarm**) stack alarm description above the snooze and dismiss row - (7aa4daa) - dcog989
+- (**alarm**) cap long message windows and escape reminder text - (0bbf8a8) - dcog989
+- (**alarm**) close cancelled alarms and bound the overview width - (5a14e0e) - dcog989
+- (**alarm**) size timer-finished window to content and match overview layout - (74554ae) - dcog989
+- (**alarm**) show every waiting timer in one reminder window - (e242d41) - dcog989
+- (**alarm**) open the dialog at KWin's minimum window height - (df39709) - dcog989
+- (**autostart**) harden the session entry - (70a3a69) - dcog989
+- (**build**) check shell formatting and call just from hooks - (f8f3e63) - dcog989
+- (**data**) use one product name in the runner metadata and notifications - (3e69a0c) - dcog989
+- (**deadlines**) fall back when the timerfd cannot be armed - (4b9e16c) - dcog989
+- (**docs**) drop stale sources before reinstalling from the archive - (d84e014) - dcog989
+- (**engine**) fail a change that could not be persisted - (b120619) - dcog989
+- (**engine**) sync the timer state file before committing it - (502f72c) - dcog989
+- (**engine**) keep the instance lock for the whole helper run - (ca98b08) - dcog989
+- (**engine**) take an instance lock before loading timer state - (bc75e2f) - dcog989
+- (**engine**) expose pending alarms and keep one entry per id on load - (26fc84b) - dcog989
+- (**engine**) keep fired alarms cancellable and state recoverable - (5aca5ad) - dcog989
+- (**overview**) centre the empty-state text in the active timers window - (f559bda) - dcog989
+- (**packaging**) drop the racy reset-failed before restarting plasma-krunner - (43057b8) - dcog989
+- (**packaging**) quote the KNS Exec like the autostart entry - (aaeced9) - dcog989
+- (**packaging**) ship the license and check the store payload - (64e24b1) - dcog989
+- (**packaging**) restart KRunner through one script and drop the dead build script - (fd135db) - dcog989
+- (**parser**) read locale-grouped numbers as whole minutes - (86d040f) - dcog989
+- (**runner**) list ringing alarms and harden match-id dispatch - (05cd87f) - dcog989
+- (**runner**) respect the timer cap and preview the engine clock - (9c73f51) - dcog989
+- (**startup**) register the D-Bus object before owning the service name - (49ff653) - dcog989
+- (**ui**) free closed headless alarm notifications - (8936e08) - dcog989
+- (**ui**) render message tooltips as rich text - (21e68e8) - dcog989
+#### Documentation
+- (**readme**) describe what the release recipe does - (b6cac68) - dcog989
+- readme refined, new screenshots - (1e6bdab) - dcog989
+- readme refiend - (63a7259) - dcog989
+- correct versions, snooze wording and the packaging map - (a61622f) - dcog989
+- correct the install, upgrade and uninstall steps - (5f5b799) - dcog989
+- correct the reminder overview row description - (b2d5296) - dcog989
+- document store uninstall and the prebuilt binary requirement - (2abf1d3) - dcog989
+#### Tests
+- (**runner**) cover the idle exit and remove test-order dependency - (6dddbe6) - dcog989
+- (**runner**) sandbox autostart and assert expiry presentation - (92cdc98) - dcog989
+- (**runner**) guard create-row actions and trigger-word sync - (d340a8c) - dcog989
+- (**scheduler**) guard the engine re-arm and timerfd disarm - (2c07409) - dcog989
+- (**tray**) cover tray visibility and tooltip - (642e6e3) - dcog989
+- close the remaining coverage gaps - (e7f15c6) - dcog989
+- share the deterministic deadline scheduler - (1a5123d) - dcog989
+#### Build
+- list the engine sources once - (1c7643b) - dcog989
+#### CI
+- run clang-tidy and fail on its warnings - (391f81e) - dcog989
+- build and test the asan preset - (d70aa86) - dcog989
+- install just and pin one container image - (d643cbc) - dcog989
+
+- - -
+
 ## v0.4.0 - 2026-10-18
 #### Features
 - (**alarm**) let the user pick the snooze length - (4181fb6) - dcog989
