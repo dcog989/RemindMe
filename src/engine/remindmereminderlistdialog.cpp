@@ -26,7 +26,9 @@ ReminderListDialog::ReminderListDialog(const QList<Remindme::TimerInfo> &timers,
     setWindowTitle(i18n("RemindMe active timers"));
     auto *layout = new QVBoxLayout(this);
     if (timers.isEmpty()) {
-        layout->addWidget(new QLabel(i18n("No active timers."), this));
+        auto *empty = new QLabel(i18n("No active timers."), this);
+        empty->setAlignment(Qt::AlignCenter);
+        layout->addWidget(empty);
     } else {
         auto *rows = new QWidget;
         auto *rowLayout = new QVBoxLayout(rows);
